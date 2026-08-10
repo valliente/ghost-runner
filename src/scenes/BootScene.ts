@@ -6,105 +6,150 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Generate procedural retro synthwave pixel-art textures for Player and Ghost
-    this.createPlayerTexture();
-    this.createGhostTexture();
-    this.createBackgroundGridTexture();
+    // Programmatically generate pixel-art textures using scene.make.graphics() and generateTexture()
+    this.createPlayerSprite();
+    this.createGhostSprite();
+    this.createTrackGridTexture();
+    this.createRetroSunTexture();
+    this.createMountainParallaxTexture();
   }
 
   create() {
     this.scene.start('RunnerScene');
   }
 
-  private createPlayerTexture() {
-    const canvas = this.textures.createCanvas('player_sprite', 32, 48);
-    if (!canvas) return;
-    const ctx = canvas.context;
-
-    // Glowing Neon Blue Player (#00f3ff)
-    ctx.fillStyle = '#00f3ff';
-    ctx.shadowColor = '#00f3ff';
-    ctx.shadowBlur = 10;
+  private createPlayerSprite() {
+    const g = this.make.graphics({ x: 0, y: 0 });
+    
+    // Neon blue (#00f3ff) 16x16 2D runner sprite
+    g.fillStyle(0x00f3ff, 1);
     
     // Head
-    ctx.beginPath();
-    ctx.arc(16, 10, 6, 0, Math.PI * 2);
-    ctx.fill();
+    g.fillRect(6, 1, 4, 4);
+    // Torso
+    g.fillRect(5, 5, 6, 6);
+    // Arms
+    g.fillRect(3, 6, 2, 4);
+    g.fillRect(11, 7, 2, 4);
+    // Legs
+    g.fillRect(4, 11, 3, 5);
+    g.fillRect(9, 11, 3, 5);
 
-    // Body & Limbs (cyberpunk runner silhouette)
-    ctx.fillRect(12, 18, 8, 16);
-    ctx.fillRect(8, 20, 4, 10);
-    ctx.fillRect(20, 24, 4, 10);
-    ctx.fillRect(10, 34, 5, 12);
-    ctx.fillRect(17, 34, 5, 12);
-
-    canvas.refresh();
+    g.generateTexture('player-sprite', 16, 16);
+    g.destroy();
   }
 
-  private createGhostTexture() {
-    const canvas = this.textures.createCanvas('ghost_sprite', 32, 48);
-    if (!canvas) return;
-    const ctx = canvas.context;
+  private createGhostSprite() {
+    const g = this.make.graphics({ x: 0, y: 0 });
 
-    // Translucent Neon Magenta Ghost (#ff007f)
-    ctx.fillStyle = 'rgba(255, 0, 127, 0.75)';
-    ctx.shadowColor = '#ff007f';
-    ctx.shadowBlur = 15;
+    // Translucent neon magenta (#ff007f) 16x16 2D runner sprite
+    g.fillStyle(0xff007f, 0.85);
 
     // Head
-    ctx.beginPath();
-    ctx.arc(16, 10, 6, 0, Math.PI * 2);
-    ctx.fill();
+    g.fillRect(6, 1, 4, 4);
+    // Torso
+    g.fillRect(5, 5, 6, 6);
+    // Arms
+    g.fillRect(3, 7, 2, 4);
+    g.fillRect(11, 6, 2, 4);
+    // Legs
+    g.fillRect(4, 11, 3, 5);
+    g.fillRect(9, 11, 3, 5);
 
-    // Body & Limbs
-    ctx.fillRect(12, 18, 8, 16);
-    ctx.fillRect(8, 24, 4, 10);
-    ctx.fillRect(20, 20, 4, 10);
-    ctx.fillRect(10, 34, 5, 12);
-    ctx.fillRect(17, 34, 5, 12);
+    // Glowing trail dots behind ghost
+    g.fillStyle(0xff007f, 0.4);
+    g.fillRect(1, 4, 2, 2);
+    g.fillRect(0, 9, 2, 2);
 
-    canvas.refresh();
+    g.generateTexture('ghost-sprite', 16, 16);
+    g.destroy();
   }
 
-  private createBackgroundGridTexture() {
-    const canvas = this.textures.createCanvas('grid_bg', 800, 450);
-    if (!canvas) return;
-    const ctx = canvas.context;
+  private createTrackGridTexture() {
+    const g = this.make.graphics({ x: 0, y: 0 });
 
-    // Dark synthwave gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, 450);
-    grad.addColorStop(0, '#0d0221');
-    grad.addColorStop(0.6, '#260847');
-    grad.addColorStop(1, '#050014');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 800, 450);
+    // 80s style neon magenta ground grid texture (64x64)
+    g.fillStyle(0x090118, 1);
+    g.fillRect(0, 0, 64, 64);
 
-    // Neon horizon line
-    ctx.strokeStyle = '#ff007f';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#ff007f';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.moveTo(0, 300);
-    ctx.lineTo(800, 300);
-    ctx.stroke();
+    // Grid lines (#ff007f)
+    g.lineStyle(2, 0xff007f, 0.8);
+    g.strokeRect(0, 0, 64, 64);
 
-    // Grid lines on track
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < 800; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, 300);
-      ctx.lineTo(x - 60, 450);
-      ctx.stroke();
+    // Perspective accents (#00f3ff)
+    g.lineStyle(1, 0x00f3ff, 0.3);
+    g.lineBetween(0, 64, 64, 0);
+
+    g.generateTexture('track-grid', 64, 64);
+    g.destroy();
+  }
+
+  private createRetroSunTexture() {
+    const g = this.make.graphics({ x: 0, y: 0 });
+
+    // Glowing pixel-art synthwave sun (64x64)
+    const radius = 28;
+    const centerX = 32;
+    const centerY = 32;
+
+    for (let y = 4; y < 60; y++) {
+      const dy = y - centerY;
+      const dx = Math.floor(Math.sqrt(Math.max(0, radius * radius - dy * dy)));
+      if (dx > 0) {
+        // Cut scanline horizontal gaps near the bottom of sun
+        if (y > 36 && (y % 4 < 2)) {
+          continue;
+        }
+        const ratio = (y - 4) / 56;
+        const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+          new Phaser.Display.Color(255, 221, 0),
+          new Phaser.Display.Color(255, 0, 127),
+          100,
+          Math.floor(ratio * 100)
+        );
+        const hex = Phaser.Display.Color.GetColor(color.r, color.g, color.b);
+        g.fillStyle(hex, 1);
+        g.fillRect(centerX - dx, y, dx * 2, 1);
+      }
     }
-    for (let y = 300; y <= 450; y += 20) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(800, y);
-      ctx.stroke();
-    }
 
-    canvas.refresh();
+    g.generateTexture('retro-sun', 64, 64);
+    g.destroy();
+  }
+
+  private createMountainParallaxTexture() {
+    const g = this.make.graphics({ x: 0, y: 0 });
+
+    // Dark purple pixelated mountain outline (400x120)
+    g.fillStyle(0x1c0b38, 1);
+    g.beginPath();
+    g.moveTo(0, 120);
+    g.lineTo(0, 80);
+    g.lineTo(40, 40);
+    g.lineTo(90, 95);
+    g.lineTo(140, 30);
+    g.lineTo(200, 85);
+    g.lineTo(260, 20);
+    g.lineTo(330, 90);
+    g.lineTo(400, 50);
+    g.lineTo(400, 120);
+    g.closePath();
+    g.fillPath();
+
+    // Neon mountain peak ridge line
+    g.lineStyle(2, 0xa100ff, 0.8);
+    g.beginPath();
+    g.moveTo(0, 80);
+    g.lineTo(40, 40);
+    g.lineTo(90, 95);
+    g.lineTo(140, 30);
+    g.lineTo(200, 85);
+    g.lineTo(260, 20);
+    g.lineTo(330, 90);
+    g.lineTo(400, 50);
+    g.strokePath();
+
+    g.generateTexture('mountain-parallax', 400, 120);
+    g.destroy();
   }
 }

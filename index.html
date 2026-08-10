@@ -7,7 +7,61 @@
     <title>Ghost Runner - Retro 2D Hybrid Fitness Engine</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <header>
+        <h1>Ghost Runner</h1>
+        <p>Retro 2D Adaptive Fitness Engine</p>
+      </header>
+
+      <div id="game-container"></div>
+
+      <!-- Controls & HUD Dashboard -->
+      <div class="controls-panel">
+        <div class="btn-group">
+          <button id="btn-start" class="btn">Start Run</button>
+          <button id="btn-pause" class="btn btn-pink">Pause</button>
+          <button id="btn-reset" class="btn">Reset</button>
+          <label class="btn btn-pink" style="display:inline-block; cursor:pointer;">
+            Load GPX
+            <input type="file" id="gpx-input" accept=".gpx" style="display:none;" />
+          </label>
+        </div>
+
+        <div class="slider-group">
+          <label for="speed-slider">Pace Controller:</label>
+          <input type="range" id="speed-slider" min="1.5" max="6.5" step="0.05" value="4.0" />
+          <span id="speed-val" class="val-cyan" style="font-family:monospace;">4:10 /km (14.4 km/h)</span>
+        </div>
+      </div>
+
+      <!-- Real-Time Metrics Dashboard HUD -->
+      <div class="hud-bar">
+        <div class="hud-card">
+          <div class="hud-label">TIME ELAPSED</div>
+          <div id="hud-time" class="hud-value val-cyan">00:00</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-label">DISTANCE</div>
+          <div id="hud-dist" class="hud-value val-cyan">0.00 km</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-label">CURRENT PACE</div>
+          <div id="hud-pace" class="hud-value val-cyan">4:10 /km</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-label">PACE DELTA</div>
+          <div id="hud-delta" class="hud-value val-pink">0:00 /km</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-label">AUDIO BPM</div>
+          <div id="hud-bpm" class="hud-value val-cyan">120 BPM</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -1,56 +1,68 @@
 import Phaser from 'phaser';
 import { GhostEngine } from '../engine/GhostEngine';
-import { GPXParser } from '../services/GPXParser';
+import { MockRunGenerator } from '../services/MockRunGenerator';
+
+export interface MetricsUpdate {
+  elapsedSeconds: number;
+  playerDistanceKm: number;
+  playerPaceMinKm: number;
+  ghostPaceMinKm: number;
+  paceDeltaSecKm: number;
+  paceRatio: number;
+  playerSpeedMs: number;
+  ghostSpeedMs: number;
+}
 
 export class RunnerScene extends Phaser.Scene {
   private playerSprite!: Phaser.GameObjects.Sprite;
   private ghostSprite!: Phaser.GameObjects.Sprite;
-  private bgTile!: Phaser.GameObjects.TileSprite;
-  
+
+  private sunImage!: Phaser.GameObjects.Image;
+  private mountainTile!: Phaser.GameObjects.TileSprite;
+  private gridTile!: Phaser.GameObjects.TileSprite;
+
   private ghostEngine!: GhostEngine;
   private elapsedTime: number = 0;
   private isRunning: boolean = false;
-  
-  private playerDistance: number = 0;
-  private playerSpeed: number = 4.0; // m/s default (~14.4 km/h)
-  private ghostDistance: number = 0;
-  private ghostSpeed: number = 0;
 
-  private debugText!: Phaser.GameObjects.Text;
-  private onPaceUpdateCallback?: (playerSpeed: number, ghostSpeed: number, paceDeltaRatio: number) => void;
+  private playerDistanceMeters: number = 0;
+  private playerSpeedMs: number = 4.0; // ~4.0 m/s default (~14.4 km/h, pace ~4:10 /km)
+  private ghostDistanceMeters: number = 0;
+  private ghostSpeedMs: number = 0;
+
+  private onMetricsUpdateCallback?: (metrics: MetricsUpdate) => void;
 
   constructor() {
     super({ key: 'RunnerScene' });
   }
 
   init() {
-    const defaultData = GPXParser.generateMockGhostData();
-    this.ghostEngine = new GhostEngine(defaultData);
+    const mockData = MockRunGenerator.generate5kMockRun();
+    this.ghostEngine = new GhostEngine(mockData);
   }
 
   create() {
-    // Parallax background track
-    this.bgTile = this.add.tileSprite(400, 225, 800, 450, 'grid_bg');
+    // 1. Sky & Sun
+    this.sunImage = this.add.image(400, 170, 'retro-sun');
+    this.sunImage.setScale(2.5);
 
-    const groundY = 350;
+    // 2. Parallax Mountain Range (y = 250)
+    this.mountainTile = this.add.tileSprite(400, 250, 800, 120, 'mountain-parallax');
 
-    // Render Ghost sprite (translucent neon magenta)
-    this.ghostSprite = this.add.sprite(150, groundY, 'ghost_sprite');
+    // 3. 80s Magenta Track Floor (y = 390)
+    this.gridTile = this.add.tileSprite(400, 390, 800, 120, 'track-grid');
+
+    const groundY = 360;
+
+    // Render Ghost runner (translucent neon magenta)
+    this.ghostSprite = this.add.sprite(200, groundY, 'ghost-sprite');
+    this.ghostSprite.setScale(2.5);
     this.ghostSprite.setOrigin(0.5, 1);
-    this.ghostSprite.setAlpha(0.85);
 
-    // Render Player sprite (neon blue)
-    this.playerSprite = this.add.sprite(150, groundY, 'player_sprite');
+    // Render Player runner (neon blue)
+    this.playerSprite = this.add.sprite(200, groundY, 'player-sprite');
+    this.playerSprite.setScale(2.5);
     this.playerSprite.setOrigin(0.5, 1);
-
-    // HUD stats display
-    this.debugText = this.add.text(16, 16, '', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
-      color: '#00f3ff',
-      backgroundColor: 'rgba(5, 0, 20, 0.85)',
-      padding: { x: 10, y: 8 }
-    });
   }
 
   update(_time: number, delta: number) {
@@ -59,60 +71,67 @@ export class RunnerScene extends Phaser.Scene {
     const deltaSec = delta / 1000;
     this.elapsedTime += deltaSec;
 
-    // Update Player Distance
-    this.playerDistance += this.playerSpeed * deltaSec;
+    // Advance Player Distance
+    this.playerDistanceMeters += this.playerSpeedMs * deltaSec;
 
-    // Update Ghost via GhostEngine telemetry interpolation
+    // Advance Ghost via GhostEngine linear vector interpolation
     const ghostState = this.ghostEngine.getGhostPositionAtTime(this.elapsedTime);
-    this.ghostDistance = ghostState.x;
-    this.ghostSpeed = ghostState.speed;
+    this.ghostDistanceMeters = ghostState.x;
+    this.ghostSpeedMs = ghostState.speed;
 
-    // Scroll track background relative to player speed
-    this.bgTile.tilePositionX += this.playerSpeed * 20 * deltaSec;
+    // Parallax scrolling speed logic
+    // Ground grid scrolls fast relative to player speed
+    this.gridTile.tilePositionX += (this.playerSpeedMs * 25 * deltaSec);
+    // Mountains scroll slowly in background (parallax factor 0.2x)
+    this.mountainTile.tilePositionX += (this.playerSpeedMs * 4 * deltaSec);
 
-    // Side-scrolling relative position calculation
+    // Side-scrolling relative position calculation (base reference X = 200)
     const baseX = 200;
-    const distanceDelta = this.ghostDistance - this.playerDistance; // positive = ghost ahead
+    const distanceDelta = this.ghostDistanceMeters - this.playerDistanceMeters; // positive = ghost ahead
     
-    // Map distance delta to pixel offset (1 meter = 15 pixels)
-    const ghostXOffset = distanceDelta * 15;
-    const targetGhostX = Phaser.Math.Clamp(baseX + ghostXOffset, 50, 750);
+    // Map distance delta in meters to screen pixel offset (1m = 12px)
+    const targetGhostX = Phaser.Math.Clamp(baseX + (distanceDelta * 12), 40, 760);
     
-    // Smooth frame-by-frame interpolation for Ghost sprite
+    // Smooth frame-by-frame position interpolation
     this.ghostSprite.x = Phaser.Math.Linear(this.ghostSprite.x, targetGhostX, 0.1);
     this.playerSprite.x = baseX;
 
-    // Sub-pixel bounce animation for running legs effect
-    const bounce = Math.abs(Math.sin(this.elapsedTime * 12)) * 4;
-    this.playerSprite.y = 350 - bounce;
-    this.ghostSprite.y = 350 - (Math.abs(Math.sin(this.elapsedTime * 12)) * 4);
+    // Running bounce animation effect
+    const bounce = Math.abs(Math.sin(this.elapsedTime * 12)) * 6;
+    this.playerSprite.y = 360 - bounce;
+    this.ghostSprite.y = 360 - (Math.abs(Math.sin(this.elapsedTime * 12)) * 6);
 
-    // Calculate Pace Delta Ratio (Player Speed / Ghost Speed)
-    const paceDeltaRatio = this.ghostSpeed > 0 ? (this.playerSpeed / this.ghostSpeed) : 1.0;
-    if (this.onPaceUpdateCallback) {
-      this.onPaceUpdateCallback(this.playerSpeed, this.ghostSpeed, paceDeltaRatio);
+    // Calculate pace metrics
+    const playerPaceMinKm = this.playerSpeedMs > 0 ? (1000 / (this.playerSpeedMs * 60)) : 0;
+    const ghostPaceMinKm = this.ghostSpeedMs > 0 ? (1000 / (this.ghostSpeedMs * 60)) : 0;
+    
+    // Pace Delta in sec/km
+    const paceDeltaSecKm = (playerPaceMinKm - ghostPaceMinKm) * 60;
+    const paceRatio = this.ghostSpeedMs > 0 ? (this.playerSpeedMs / this.ghostSpeedMs) : 1.0;
+
+    if (this.onMetricsUpdateCallback) {
+      this.onMetricsUpdateCallback({
+        elapsedSeconds: this.elapsedTime,
+        playerDistanceKm: this.playerDistanceMeters / 1000,
+        playerPaceMinKm,
+        ghostPaceMinKm,
+        paceDeltaSecKm,
+        paceRatio,
+        playerSpeedMs: this.playerSpeedMs,
+        ghostSpeedMs: this.ghostSpeedMs
+      });
     }
-
-    // HUD Text update
-    const gapMeters = (this.playerDistance - this.ghostDistance).toFixed(1);
-    const gapStatus = parseFloat(gapMeters) >= 0 ? `+${gapMeters}m Ahead` : `${gapMeters}m Behind`;
-    this.debugText.setText([
-      `TIME: ${this.elapsedTime.toFixed(1)}s`,
-      `PLAYER SPEED: ${(this.playerSpeed * 3.6).toFixed(1)} km/h | DIST: ${this.playerDistance.toFixed(1)}m`,
-      `GHOST  SPEED: ${(this.ghostSpeed * 3.6).toFixed(1)} km/h | DIST: ${this.ghostDistance.toFixed(1)}m`,
-      `STATUS: ${gapStatus}`
-    ]);
   }
 
   public setGhostEngine(engine: GhostEngine) {
     this.ghostEngine = engine;
     this.elapsedTime = 0;
-    this.playerDistance = 0;
-    this.ghostDistance = 0;
+    this.playerDistanceMeters = 0;
+    this.ghostDistanceMeters = 0;
   }
 
   public setPlayerSpeed(speedMs: number) {
-    this.playerSpeed = speedMs;
+    this.playerSpeedMs = speedMs;
   }
 
   public startRun() {
@@ -126,13 +145,13 @@ export class RunnerScene extends Phaser.Scene {
   public resetRun() {
     this.isRunning = false;
     this.elapsedTime = 0;
-    this.playerDistance = 0;
-    this.ghostDistance = 0;
+    this.playerDistanceMeters = 0;
+    this.ghostDistanceMeters = 0;
     if (this.playerSprite) this.playerSprite.x = 200;
     if (this.ghostSprite) this.ghostSprite.x = 200;
   }
 
-  public setOnPaceUpdate(cb: (playerSpeed: number, ghostSpeed: number, ratio: number) => void) {
-    this.onPaceUpdateCallback = cb;
+  public setOnMetricsUpdate(cb: (metrics: MetricsUpdate) => void) {
+    this.onMetricsUpdateCallback = cb;
   }
 }

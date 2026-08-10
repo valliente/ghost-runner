@@ -1,6 +1,6 @@
 :root {
   --bg-color: #08020f;
-  --panel-bg: rgba(22, 10, 36, 0.85);
+  --panel-bg: rgba(22, 10, 36, 0.88);
   --border-neon-cyan: #00f3ff;
   --border-neon-pink: #ff007f;
   --text-main: #f0f6fc;
@@ -28,17 +28,16 @@ body {
 
 #app {
   width: 100%;
-  max-width: 860px;
-  padding: 20px;
+  max-width: 840px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 header {
   text-align: center;
-  margin-bottom: 8px;
 }
 
 header h1 {
@@ -54,7 +53,7 @@ header h1 {
 
 header p {
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   letter-spacing: 1px;
 }
 
@@ -73,10 +72,10 @@ header p {
   background: var(--panel-bg);
   border: 1px solid rgba(0, 243, 255, 0.3);
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: 12px 18px;
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
   justify-content: space-between;
   backdrop-filter: blur(10px);
@@ -84,15 +83,15 @@ header p {
 
 .btn-group {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn {
   background: linear-gradient(135deg, #160a24, #2a0845);
   color: var(--border-neon-cyan);
   border: 1px solid var(--border-neon-cyan);
-  padding: 10px 18px;
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -104,7 +103,7 @@ header p {
 .btn:hover {
   background: var(--border-neon-cyan);
   color: #000;
-  box-shadow: 0 0 15px var(--border-neon-cyan);
+  box-shadow: 0 0 12px var(--border-neon-cyan);
 }
 
 .btn-pink {
@@ -115,19 +114,19 @@ header p {
 .btn-pink:hover {
   background: var(--border-neon-pink);
   color: #fff;
-  box-shadow: 0 0 15px var(--border-neon-pink);
+  box-shadow: 0 0 12px var(--border-neon-pink);
 }
 
 .slider-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
-  min-width: 250px;
+  min-width: 260px;
 }
 
 .slider-group label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--border-neon-cyan);
   font-family: monospace;
 }
@@ -140,24 +139,43 @@ header p {
 
 .hud-bar {
   width: 100%;
-  display: flex;
-  justify-content: space-around;
-  background: rgba(13, 2, 33, 0.9);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  background: rgba(13, 2, 33, 0.95);
   border: 1px solid rgba(255, 0, 127, 0.3);
   border-radius: 6px;
   padding: 10px;
+}
+
+.hud-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(26, 10, 48, 0.6);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+
+.hud-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.hud-value {
   font-family: monospace;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
-.hud-item span {
-  font-weight: bold;
-}
-
-.hud-item .val-cyan {
+.val-cyan {
   color: var(--border-neon-cyan);
 }
 
-.hud-item .val-pink {
+.val-pink {
   color: var(--border-neon-pink);
 }

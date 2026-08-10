@@ -4,6 +4,7 @@ export interface TelemetryPoint {
   longitude: number;
   speed: number;     // Speed in meters per second (m/s)
   distance: number;  // Cumulative distance in meters
+  pace?: number;     // Pace in minutes per kilometer (min/km)
 }
 
 export interface GhostVector {

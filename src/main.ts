@@ -2,43 +2,9 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { RunnerScene } from './scenes/RunnerScene';
 import { AdaptiveAudioEngine } from './audio/AdaptiveAudio';
-import { GPXParser } from './services/GPXParser';
+import { GPXParserService } from './services/GPXParserService';
 import { GhostEngine } from './engine/GhostEngine';
 import './style.css';
-
-// Build UI HTML structure
-const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `
-  <header>
-    <h1>Ghost Runner</h1>
-    <p>Retro 2D Adaptive Fitness Engine</p>
-  </header>
-
-  <div id="game-container"></div>
-
-  <div class="controls-panel">
-    <div class="btn-group">
-      <button id="btn-start" class="btn">Start Run</button>
-      <button id="btn-pause" class="btn btn-pink">Pause</button>
-      <button id="btn-reset" class="btn">Reset</button>
-      <label class="btn btn-pink" style="display:inline-block; cursor:pointer;">
-        Load GPX
-        <input type="file" id="gpx-input" accept=".gpx" style="display:none;" />
-      </label>
-    </div>
-
-    <div class="slider-group">
-      <label for="speed-slider">Pace Simulator:</label>
-      <input type="range" id="speed-slider" min="1.0" max="8.0" step="0.1" value="4.0" />
-      <span id="speed-val" style="font-family:monospace; color:#00f3ff;">14.4 km/h</span>
-    </div>
-  </div>
-
-  <div class="hud-bar">
-    <div class="hud-item">AUDIO TEMPO: <span id="tempo-val" class="val-cyan">1.00x</span></div>
-    <div class="hud-item">PACING RATIO: <span id="pacing-val" class="val-pink">100%</span></div>
-  </div>
-`;
 
 // Initialize Phaser 3 Game Configuration
 const config: Phaser.Types.Core.GameConfig = {
@@ -57,36 +23,52 @@ const config: Phaser.Types.Core.GameConfig = {
 const game = new Phaser.Game(config);
 const audioEngine = new AdaptiveAudioEngine();
 
-// UI Elements
+// UI Dashboard DOM Elements
 const btnStart = document.getElementById('btn-start') as HTMLButtonElement;
 const btnPause = document.getElementById('btn-pause') as HTMLButtonElement;
 const btnReset = document.getElementById('btn-reset') as HTMLButtonElement;
 const gpxInput = document.getElementById('gpx-input') as HTMLInputElement;
+
 const speedSlider = document.getElementById('speed-slider') as HTMLInputElement;
 const speedVal = document.getElementById('speed-val') as HTMLSpanElement;
-const tempoVal = document.getElementById('tempo-val') as HTMLSpanElement;
-const pacingVal = document.getElementById('pacing-val') as HTMLSpanElement;
+
+const hudTime = document.getElementById('hud-time') as HTMLDivElement;
+const hudDist = document.getElementById('hud-dist') as HTMLDivElement;
+const hudPace = document.getElementById('hud-pace') as HTMLDivElement;
+const hudDelta = document.getElementById('hud-delta') as HTMLDivElement;
+const hudBpm = document.getElementById('hud-bpm') as HTMLDivElement;
 
 let runnerScene: RunnerScene | null = null;
 
-// Wait for Phaser scene initialization
+// Bind Phaser scene once ready
 game.events.on(Phaser.Core.Events.READY, () => {
   runnerScene = game.scene.getScene('RunnerScene') as RunnerScene;
 
-  // Listen to pace update callback from Phaser physics update loop
-  runnerScene.setOnPaceUpdate((_playerSpeed, _ghostSpeed, ratio) => {
-    const tempo = audioEngine.updateTempoFromPaceDelta(ratio);
-    tempoVal.textContent = `${tempo.toFixed(2)}x`;
-    pacingVal.textContent = `${(ratio * 100).toFixed(0)}%`;
+  // Bind live frame-by-frame metrics callback from Phaser game loop
+  runnerScene.setOnMetricsUpdate((metrics) => {
+    // 1. Time Elapsed
+    hudTime.textContent = formatTime(metrics.elapsedSeconds);
+
+    // 2. Distance in KM
+    hudDist.textContent = `${metrics.playerDistanceKm.toFixed(2)} km`;
+
+    // 3. Current Pace
+    hudPace.textContent = formatPace(metrics.playerPaceMinKm);
+
+    // 4. Pace Delta vs Ghost
+    const deltaInfo = formatPaceDelta(metrics.paceDeltaSecKm);
+    hudDelta.textContent = deltaInfo.text;
+    hudDelta.className = deltaInfo.isAhead ? 'hud-value val-cyan' : 'hud-value val-pink';
+
+    // 5. Procedural Synthwave Audio Adaptation
+    const audioState = audioEngine.updateTempoAndTone(metrics.paceRatio);
+    hudBpm.textContent = `${Math.round(audioState.bpm)} BPM`;
   });
 });
 
-// Button Controls
+// Button Handlers
 btnStart.addEventListener('click', async () => {
-  await audioEngine.init();
-  await audioEngine.loadSynthwaveTrack();
-  audioEngine.startMusic();
-  audioEngine.triggerSFX('boost');
+  await audioEngine.startMusic();
   if (runnerScene) {
     runnerScene.startRun();
   }
@@ -94,7 +76,6 @@ btnStart.addEventListener('click', async () => {
 
 btnPause.addEventListener('click', () => {
   audioEngine.stopMusic();
-  audioEngine.triggerSFX('button');
   if (runnerScene) {
     runnerScene.pauseRun();
   }
@@ -102,23 +83,25 @@ btnPause.addEventListener('click', () => {
 
 btnReset.addEventListener('click', () => {
   audioEngine.stopMusic();
-  audioEngine.triggerSFX('button');
   if (runnerScene) {
     runnerScene.resetRun();
   }
+  resetHudDisplay();
 });
 
-// Pace Simulator Slider
+// Pace Controller Slider Handler
 speedSlider.addEventListener('input', () => {
   const speedMs = parseFloat(speedSlider.value);
-  const speedKmh = (speedMs * 3.6).toFixed(1);
-  speedVal.textContent = `${speedKmh} km/h`;
+  const kmh = (speedMs * 3.6).toFixed(1);
+  const paceMinKm = speedMs > 0 ? (1000 / (speedMs * 60)) : 0;
+  speedVal.textContent = `${formatPace(paceMinKm)} (${kmh} km/h)`;
+
   if (runnerScene) {
     runnerScene.setPlayerSpeed(speedMs);
   }
 });
 
-// GPX Telemetry File Upload
+// Custom GPX File Upload Handler
 gpxInput.addEventListener('change', (e) => {
   const target = e.target as HTMLInputElement;
   if (target.files && target.files[0]) {
@@ -127,15 +110,52 @@ gpxInput.addEventListener('change', (e) => {
     reader.onload = (evt) => {
       const xmlText = evt.target?.result as string;
       if (xmlText) {
-        const ghostVector = GPXParser.parseGPX(xmlText);
-        const engine = new GhostEngine(ghostVector);
-        if (runnerScene) {
-          runnerScene.setGhostEngine(engine);
-          audioEngine.triggerSFX('checkpoint');
-          alert(`Loaded Ghost GPX telemetry! ${ghostVector.points.length} data points, ${(ghostVector.totalDistance / 1000).toFixed(2)} km.`);
+        try {
+          const ghostVector = GPXParserService.parseGPX(xmlText);
+          const engine = new GhostEngine(ghostVector);
+          if (runnerScene) {
+            runnerScene.setGhostEngine(engine);
+            alert(`Parsed custom GPX file successfully!\nTrack Points: ${ghostVector.points.length}\nDistance: ${(ghostVector.totalDistance / 1000).toFixed(2)} km`);
+          }
+        } catch (err: any) {
+          alert(`Error parsing GPX file: ${err?.message || err}`);
         }
       }
     };
     reader.readAsText(file);
   }
 });
+
+// Helper Formatters
+function formatTime(totalSec: number): string {
+  const mins = Math.floor(totalSec / 60);
+  const secs = Math.floor(totalSec % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatPace(paceMinKm: number): string {
+  if (!paceMinKm || !isFinite(paceMinKm) || paceMinKm <= 0) return '0:00 /km';
+  const mins = Math.floor(paceMinKm);
+  const secs = Math.round((paceMinKm - mins) * 60);
+  return `${mins}:${secs.toString().padStart(2, '0')} /km`;
+}
+
+function formatPaceDelta(deltaSecKm: number): { text: string; isAhead: boolean } {
+  const absSec = Math.abs(Math.round(deltaSecKm));
+  const mins = Math.floor(absSec / 60);
+  const secs = absSec % 60;
+  const timeStr = `${mins}:${secs.toString().padStart(2, '0')} /km`;
+  if (deltaSecKm <= 0) {
+    return { text: `-${timeStr} ahead`, isAhead: true };
+  } else {
+    return { text: `+${timeStr} behind`, isAhead: false };
+  }
+}
+
+function resetHudDisplay() {
+  hudTime.textContent = '00:00';
+  hudDist.textContent = '0.00 km';
+  hudPace.textContent = '4:10 /km';
+  hudDelta.textContent = '0:00 /km';
+  hudBpm.textContent = '120 BPM';
+}

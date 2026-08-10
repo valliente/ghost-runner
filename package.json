@@ -19,6 +19,7 @@
     "@capacitor/core": "^8.5.0",
     "@capacitor/geolocation": "^8.2.1",
     "@tauri-apps/api": "^2.11.1",
+    "gpxparser": "^3.0.8",
     "phaser": "^4.2.1",
     "tone": "^15.1.22"
   }

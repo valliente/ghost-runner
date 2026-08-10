@@ -1,117 +1,178 @@
 import * as Tone from 'tone';
 
 export class AdaptiveAudioEngine {
-  private player: Tone.GrainPlayer | null = null;
-  private isLoaded: boolean = false;
+  private isInitialized: boolean = false;
   private isPlaying: boolean = false;
-  private currentPlaybackRate: number = 1.0;
-  private synth: Tone.Synth | null = null;
-  private noiseSynth: Tone.NoiseSynth | null = null;
 
-  constructor() {
-    // Audio context is lazily initialized on user interaction
-  }
+  private filter!: Tone.Filter;
+  private bassSynth!: Tone.Synth;
+  private leadSynth!: Tone.PolySynth;
+  private kickSynth!: Tone.MembraneSynth;
+  private snareSynth!: Tone.NoiseSynth;
+
+  private bassLoop!: Tone.Sequence;
+  private leadLoop!: Tone.Sequence;
+  private drumLoop!: Tone.Sequence;
+
+  private currentBpm: number = 120;
+  private currentFilterFreq: number = 2500;
 
   public async init(): Promise<void> {
+    if (this.isInitialized) return;
     if (Tone.context.state !== 'running') {
       await Tone.start();
     }
-    
-    // Web Audio synths for sound effects
-    this.synth = new Tone.Synth({
+
+    // Low-pass filter for dynamic sound muffling when falling behind
+    this.filter = new Tone.Filter({
+      frequency: 2500,
+      type: 'lowpass'
+    }).toDestination();
+
+    // 1. Bassline synth
+    this.bassSynth = new Tone.Synth({
       oscillator: { type: 'sawtooth' },
-      envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
-    }).toDestination();
+      envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.2 }
+    }).connect(this.filter);
+    this.bassSynth.volume.value = -6;
 
-    this.noiseSynth = new Tone.NoiseSynth({
+    // 2. Synth Lead for 80s chord progressions
+    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 0.8 }
+    }).connect(this.filter);
+    this.leadSynth.volume.value = -10;
+
+    // 3. Drums (Kick & Snare)
+    this.kickSynth = new Tone.MembraneSynth({
+      pitchDecay: 0.05,
+      octaves: 6,
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.4 }
+    }).toDestination();
+    this.kickSynth.volume.value = 0;
+
+    this.snareSynth = new Tone.NoiseSynth({
       noise: { type: 'pink' },
-      envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+      envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
     }).toDestination();
-  }
+    this.snareSynth.volume.value = -12;
 
-  public async loadSynthwaveTrack(audioUrl?: string): Promise<void> {
-    return new Promise((resolve) => {
-      // Use Tone.GrainPlayer for pitch-preserved tempo pitch-shifting (0.8x to 1.5x)
-      const sampleUrl = audioUrl || 'https://tonejs.github.io/audio/berklee/gong_1.mp3';
-      
-      this.player = new Tone.GrainPlayer({
-        url: sampleUrl,
-        loop: true,
-        grainSize: 0.1,
-        overlap: 0.05,
-        playbackRate: 1.0,
-        onload: () => {
-          this.isLoaded = true;
-          resolve();
+    // Sequences
+    // 16th-note Synthwave Bassline
+    const bassNotes = ['C2', 'C2', 'C2', 'C2', 'D#2', 'D#2', 'F2', 'G2', 'C2', 'C2', 'A#1', 'A#1', 'G#1', 'G#1', 'G1', 'G1'];
+    this.bassLoop = new Tone.Sequence(
+      (time, note) => {
+        this.bassSynth.triggerAttackRelease(note, '16n', time);
+      },
+      bassNotes,
+      '16n'
+    );
+
+    // 80s Chord Progression
+    const chords = [
+      ['C4', 'E4', 'G4', 'B4'],
+      ['A3', 'C4', 'E4', 'G4'],
+      ['F3', 'A3', 'C4', 'E4'],
+      ['G3', 'B3', 'D4', 'F4']
+    ];
+    this.leadLoop = new Tone.Sequence(
+      (time, chord) => {
+        this.leadSynth.triggerAttackRelease(chord, '2n', time);
+      },
+      chords,
+      '1m'
+    );
+
+    // 120 BPM Drum Loop (Kick on 1 & 3, Snare on 2 & 4)
+    const drumEvents = [
+      'kick', null, 'kick', null,
+      'snare', null, 'kick', null,
+      'kick', null, 'kick', null,
+      'snare', null, 'kick', 'snare'
+    ];
+    this.drumLoop = new Tone.Sequence(
+      (time, event) => {
+        if (event === 'kick') {
+          this.kickSynth.triggerAttackRelease('C1', '8n', time);
+        } else if (event === 'snare') {
+          this.snareSynth.triggerAttackRelease('8n', time);
         }
-      }).toDestination();
-    });
+      },
+      drumEvents,
+      '16n'
+    );
+
+    Tone.Transport.bpm.value = 120;
+    this.isInitialized = true;
   }
 
   public async startMusic(): Promise<void> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
     if (Tone.context.state !== 'running') {
       await Tone.start();
     }
-    if (this.player && this.isLoaded && !this.isPlaying) {
-      this.player.start();
+
+    if (!this.isPlaying) {
+      this.bassLoop.start(0);
+      this.leadLoop.start(0);
+      this.drumLoop.start(0);
+      Tone.Transport.start();
       this.isPlaying = true;
     }
   }
 
   public stopMusic(): void {
-    if (this.player && this.isPlaying) {
-      this.player.stop();
+    if (this.isPlaying) {
+      Tone.Transport.stop();
+      this.bassLoop.stop();
+      this.leadLoop.stop();
+      this.drumLoop.stop();
       this.isPlaying = false;
     }
   }
 
   /**
-   * Adjusts playback rate/tempo dynamically between 0.8x and 1.5x based on real-time pace delta
-   * @param paceDeltaRatio Ratio of player pace to ghost pace
+   * Connects Tone.Transport.bpm and filter frequency to the live speed ratio between Player and Ghost.
+   * @param paceRatio Ratio of player speed to ghost speed (1.0 = equal)
    */
-  public updateTempoFromPaceDelta(paceDeltaRatio: number): number {
-    const targetRate = Math.min(Math.max(paceDeltaRatio, 0.8), 1.5);
-    this.setPlaybackRate(targetRate);
-    return targetRate;
+  public updateTempoAndTone(paceRatio: number): { bpm: number; filterFreq: number } {
+    if (!this.isInitialized) return { bpm: 120, filterFreq: 2500 };
+
+    // Clamped BPM between 90 and 180 (base 120 BPM)
+    const targetBpm = Math.min(Math.max(120 * paceRatio, 90), 180);
+    this.currentBpm = targetBpm;
+
+    // Smoothly ramp BPM up or down
+    Tone.Transport.bpm.rampTo(targetBpm, 0.2);
+
+    // Low-pass filter modulation:
+    // If Player falls behind (paceRatio < 1.0) -> lower filter frequency (muffle audio down to 400Hz)
+    // If Player matches or exceeds pace -> open filter up to 5000Hz
+    let targetFilterFreq = 2500;
+    if (paceRatio < 1.0) {
+      // Muffle synth audio
+      targetFilterFreq = Math.max(400, 2500 * paceRatio);
+    } else {
+      // Open up synth brightness
+      targetFilterFreq = Math.min(6000, 2500 * paceRatio);
+    }
+
+    this.currentFilterFreq = targetFilterFreq;
+    if (this.filter) {
+      this.filter.frequency.rampTo(targetFilterFreq, 0.2);
+    }
+
+    return { bpm: targetBpm, filterFreq: targetFilterFreq };
   }
 
-  public setPlaybackRate(targetRate: number): void {
-    const clampedRate = Math.min(Math.max(targetRate, 0.8), 1.5);
-    this.currentPlaybackRate = clampedRate;
-    if (this.player) {
-      this.player.playbackRate = clampedRate;
-    }
+  public getBpm(): number {
+    return this.currentBpm;
   }
 
-  public getPlaybackRate(): number {
-    return this.currentPlaybackRate;
-  }
-
-  public triggerSFX(type: 'boost' | 'checkpoint' | 'pass' | 'button'): void {
-    if (Tone.context.state !== 'running') {
-      Tone.start();
-    }
-    const now = Tone.now();
-    if (type === 'boost') {
-      if (this.synth) {
-        this.synth.triggerAttackRelease('C5', '8n', now);
-        this.synth.triggerAttackRelease('G5', '8n', now + 0.1);
-      }
-    } else if (type === 'checkpoint') {
-      if (this.synth) {
-        this.synth.triggerAttackRelease('E5', '16n', now);
-        this.synth.triggerAttackRelease('B5', '16n', now + 0.08);
-        this.synth.triggerAttackRelease('E6', '8n', now + 0.16);
-      }
-    } else if (type === 'pass') {
-      if (this.synth) {
-        this.synth.triggerAttackRelease('A4', '16n', now);
-        this.synth.triggerAttackRelease('C#5', '16n', now + 0.05);
-      }
-    } else if (type === 'button') {
-      if (this.noiseSynth) {
-        this.noiseSynth.triggerAttackRelease('16n', now);
-      }
-    }
+  public getFilterFreq(): number {
+    return this.currentFilterFreq;
   }
 }
