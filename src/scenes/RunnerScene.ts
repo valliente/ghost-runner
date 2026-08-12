@@ -63,6 +63,36 @@ export class RunnerScene extends Phaser.Scene {
     this.playerSprite = this.add.sprite(200, groundY, 'player-sprite');
     this.playerSprite.setScale(2.5);
     this.playerSprite.setOrigin(0.5, 1);
+
+    // Dynamic Speed Trail Particle Emitters
+    this.createSpeedParticleTrails();
+  }
+
+  private playerEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private ghostEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+
+  private createSpeedParticleTrails() {
+    // Neon Blue trail for Player
+    this.playerEmitter = this.add.particles(0, 0, 'player-sprite', {
+      speed: { min: 40, max: 100 },
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 0.6, end: 0 },
+      lifespan: 400,
+      blendMode: 'ADD',
+      frequency: 40
+    });
+    this.playerEmitter.startFollow(this.playerSprite);
+
+    // Neon Magenta trail for Ghost
+    this.ghostEmitter = this.add.particles(0, 0, 'ghost-sprite', {
+      speed: { min: 30, max: 80 },
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 0.4, end: 0 },
+      lifespan: 450,
+      blendMode: 'ADD',
+      frequency: 50
+    });
+    this.ghostEmitter.startFollow(this.ghostSprite);
   }
 
   update(_time: number, delta: number) {
