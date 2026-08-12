@@ -126,7 +126,38 @@ gpxInput.addEventListener('change', (e) => {
   }
 });
 
-// Helper Formatters
+// Window File Drag-and-Drop Listener (HTML5 & Tauri PC app support)
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+    const file = e.dataTransfer.files[0];
+    if (file.name.endsWith('.gpx')) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const xmlText = evt.target?.result as string;
+        if (xmlText) {
+          try {
+            const vector = GPXParserService.parseGPX(xmlText);
+            const engine = new GhostEngine(vector);
+            if (runnerScene) {
+              runnerScene.setGhostEngine(engine);
+              alert(`Dragged GPX track loaded: ${file.name} (${(vector.totalDistance / 1000).toFixed(2)} km)`);
+            }
+          } catch (err: any) {
+            alert(`Error parsing dropped GPX: ${err?.message || err}`);
+          }
+        }
+      };
+      reader.readAsText(file);
+    }
+  }
+});
 function formatTime(totalSec: number): string {
   const mins = Math.floor(totalSec / 60);
   const secs = Math.floor(totalSec % 60);
