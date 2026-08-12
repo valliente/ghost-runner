@@ -168,6 +168,26 @@ export class AdaptiveAudioEngine {
     return { bpm: targetBpm, filterFreq: targetFilterFreq };
   }
 
+  private lastAlertTime: number = 0;
+
+  /**
+   * Triggers audio warning feedback when falling >10s/km behind the ghost
+   * @param paceDeltaSecKm Difference in sec/km between player pace and ghost pace
+   */
+  public checkPaceAlerts(paceDeltaSecKm: number): void {
+    const now = Date.now();
+    // Cooldown of 8 seconds between pace alerts
+    if (now - this.lastAlertTime < 8000) return;
+
+    if (paceDeltaSecKm > 10) {
+      // Player is > 10s/km behind target ghost
+      import('./SFXEngine').then(({ sfxEngine }) => {
+        sfxEngine.playWarning();
+      });
+      this.lastAlertTime = now;
+    }
+  }
+
   public getBpm(): number {
     return this.currentBpm;
   }
