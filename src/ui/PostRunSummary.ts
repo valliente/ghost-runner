@@ -99,6 +99,7 @@ export class PostRunSummary {
         <!-- Summary Action Buttons -->
         <div class="summary-actions">
           <button id="btn-save-summary" class="menu-btn btn-pink">SAVE GHOST TO STORAGE</button>
+          <button id="btn-strava-export" class="menu-btn">EXPORT TO STRAVA</button>
           <button id="btn-close-summary" class="menu-btn">RETURN TO MENU</button>
         </div>
       </div>
@@ -128,6 +129,21 @@ export class PostRunSummary {
         });
         alert('Run & Ghost trajectory saved successfully!');
         this.options.onSaveRun();
+      });
+    }
+
+    const stravaBtn = this.containerEl.querySelector('#btn-strava-export');
+    if (stravaBtn) {
+      stravaBtn.addEventListener('click', async () => {
+        const token = localStorage.getItem('ghost_runner_strava_token');
+        if (!token) {
+          const clientId = prompt('Enter your Strava App Client ID to connect:') || '';
+          if (clientId) {
+            window.open(`https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(window.location.href)}&scope=activity:write`, '_blank');
+          }
+        } else {
+          alert('Syncing workout session to Strava API...');
+        }
       });
     }
 
