@@ -30,6 +30,10 @@ export class RunnerScene extends Phaser.Scene {
   private ghostDistanceMeters: number = 0;
   private ghostSpeedMs: number = 0;
 
+  private nitroChargeTimer: number = 0;
+  private nitroActiveTimer: number = 0;
+  private isNitroActive: boolean = false;
+
   private onMetricsUpdateCallback?: (metrics: MetricsUpdate) => void;
 
   constructor() {
@@ -102,7 +106,32 @@ export class RunnerScene extends Phaser.Scene {
     this.elapsedTime += deltaSec;
 
     // Advance Player Distance
-    this.playerDistanceMeters += this.playerSpeedMs * deltaSec;
+    let effectivePlayerSpeed = this.playerSpeedMs;
+    
+    // Nitro Boost Logic (Pace 15% faster than target for 30 seconds)
+    if (this.ghostSpeedMs > 0 && this.playerSpeedMs >= (this.ghostSpeedMs * 1.15)) {
+      this.nitroChargeTimer += deltaSec;
+      if (this.nitroChargeTimer >= 30 && !this.isNitroActive) {
+        this.isNitroActive = true;
+        this.nitroActiveTimer = 10; // 10s Nitro Duration
+        this.nitroChargeTimer = 0;
+        this.playerSprite.setTint(0x00ffff);
+        import('../audio/SFXEngine').then(({ sfxEngine }) => sfxEngine.playNitroActivate());
+      }
+    } else {
+      this.nitroChargeTimer = Math.max(0, this.nitroChargeTimer - deltaSec);
+    }
+
+    if (this.isNitroActive) {
+      this.nitroActiveTimer -= deltaSec;
+      effectivePlayerSpeed *= 1.25; // 25% extra speed boost during Nitro
+      if (this.nitroActiveTimer <= 0) {
+        this.isNitroActive = false;
+        this.playerSprite.clearTint();
+      }
+    }
+
+    this.playerDistanceMeters += effectivePlayerSpeed * deltaSec;
 
     // Advance Ghost via GhostEngine linear vector interpolation
     const ghostState = this.ghostEngine.getGhostPositionAtTime(this.elapsedTime);
