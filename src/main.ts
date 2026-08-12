@@ -158,6 +158,24 @@ window.addEventListener('drop', (e) => {
     }
   }
 });
+// Android Native Back Button Handler
+try {
+  import('@capacitor/app').then(({ App }) => {
+    App.addListener('backButton', ({ canGoBack }) => {
+      if (runnerScene && runnerScene.getGameState() === 'RUNNING') {
+        runnerScene.pauseRun();
+        alert('Run paused via Android Back Button.');
+      } else if (!canGoBack) {
+        App.exitApp();
+      } else {
+        window.history.back();
+      }
+    });
+  }).catch(() => {});
+} catch (e) {
+  // Ignored in non-Capacitor web environment
+}
+
 function formatTime(totalSec: number): string {
   const mins = Math.floor(totalSec / 60);
   const secs = Math.floor(totalSec % 60);
