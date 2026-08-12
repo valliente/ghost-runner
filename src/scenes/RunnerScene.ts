@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { GhostEngine } from '../engine/GhostEngine';
 import { MockRunGenerator } from '../services/MockRunGenerator';
 
+export type GameState = 'READY' | 'COUNTDOWN' | 'RUNNING' | 'PAUSED' | 'FINISHED';
+
 export interface MetricsUpdate {
   elapsedSeconds: number;
   playerDistanceKm: number;
@@ -23,7 +25,6 @@ export class RunnerScene extends Phaser.Scene {
 
   private ghostEngine!: GhostEngine;
   private elapsedTime: number = 0;
-  private isRunning: boolean = false;
 
   private playerDistanceMeters: number = 0;
   private playerSpeedMs: number = 4.0; // ~4.0 m/s default (~14.4 km/h, pace ~4:10 /km)
@@ -100,7 +101,27 @@ export class RunnerScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (!this.isRunning) return;
+    if (this.gameState === 'COUNTDOWN') {
+      const deltaSec = delta / 1000;
+      this.countdownTimer += deltaSec;
+      if (this.countdownTimer >= 1.0) {
+        this.countdownTimer = 0;
+        this.countdownValue--;
+        if (this.countdownValue > 0) {
+          this.countdownText.setText(this.countdownValue.toString());
+          import('../audio/SFXEngine').then(({ sfxEngine }) => sfxEngine.playCountdownBeep(false));
+        } else if (this.countdownValue === 0) {
+          this.countdownText.setText('GO!');
+          import('../audio/SFXEngine').then(({ sfxEngine }) => sfxEngine.playCountdownBeep(true));
+        } else {
+          this.countdownText.setVisible(false);
+          this.gameState = 'RUNNING';
+        }
+      }
+      return;
+    }
+
+    if (this.gameState !== 'RUNNING') return;
 
     const deltaSec = delta / 1000;
     this.elapsedTime += deltaSec;
@@ -193,21 +214,54 @@ export class RunnerScene extends Phaser.Scene {
     this.playerSpeedMs = speedMs;
   }
 
+  private gameState: GameState = 'READY';
+  private countdownValue: number = 3;
+  private countdownTimer: number = 0;
+  private countdownText!: Phaser.GameObjects.Text;
+
+  public getGameState(): GameState {
+    return this.gameState;
+  }
+
   public startRun() {
-    this.isRunning = true;
+    if (this.gameState === 'READY' || this.gameState === 'PAUSED') {
+      this.gameState = 'COUNTDOWN';
+      this.countdownValue = 3;
+      this.countdownTimer = 0;
+
+      if (!this.countdownText) {
+        this.countdownText = this.add.text(400, 225, '3', {
+          fontFamily: 'monospace',
+          fontSize: '72px',
+          color: '#00f3ff',
+          stroke: '#ff007f',
+          strokeThickness: 6
+        }).setOrigin(0.5);
+      }
+      this.countdownText.setVisible(true);
+      this.countdownText.setText('3');
+      import('../audio/SFXEngine').then(({ sfxEngine }) => sfxEngine.playCountdownBeep(false));
+    }
   }
 
   public pauseRun() {
-    this.isRunning = false;
+    this.gameState = 'PAUSED';
+    if (this.countdownText) this.countdownText.setVisible(false);
   }
 
   public resetRun() {
-    this.isRunning = false;
+    this.gameState = 'READY';
     this.elapsedTime = 0;
     this.playerDistanceMeters = 0;
     this.ghostDistanceMeters = 0;
-    if (this.playerSprite) this.playerSprite.x = 200;
+    this.nitroChargeTimer = 0;
+    this.isNitroActive = false;
+    if (this.playerSprite) {
+      this.playerSprite.x = 200;
+      this.playerSprite.clearTint();
+    }
     if (this.ghostSprite) this.ghostSprite.x = 200;
+    if (this.countdownText) this.countdownText.setVisible(false);
   }
 
   public setOnMetricsUpdate(cb: (metrics: MetricsUpdate) => void) {
