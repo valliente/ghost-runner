@@ -6,7 +6,17 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     Geolocation: {
-      // Background location continuous tracking configuration
+      // Continuous location tracking enabled
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: '#0d0221',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true
     }
   },
   android: {

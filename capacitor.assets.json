@@ -1,0 +1,11 @@
+{
+  "assetPath": "assets",
+  "android": {
+    "icon": {
+      "sources": ["assets/icon.png"]
+    },
+    "splash": {
+      "sources": ["assets/splash.png"]
+    }
+  }
+}
