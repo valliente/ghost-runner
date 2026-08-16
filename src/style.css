@@ -8,6 +8,43 @@
   --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Accessibility Theme Overrides */
+body.theme-deuteranopia {
+  --border-neon-cyan: #0077bb;
+  --border-neon-pink: #ee7733;
+}
+
+body.theme-protanopia {
+  --border-neon-cyan: #33bbee;
+  --border-neon-pink: #cc3311;
+}
+
+body.theme-tritanopia {
+  --border-neon-cyan: #009988;
+  --border-neon-pink: #ee3377;
+}
+
+body.theme-monochrome {
+  --border-neon-cyan: #ffffff;
+  --border-neon-pink: #aaaaaa;
+  --panel-bg: #111111;
+}
+
+/* High-Legibility Large Text Mode for Outdoor Sunlight */
+body.hud-large-text .hud-value,
+body.hud-large-text .widget-value,
+body.hud-large-text .stat-val {
+  font-size: 1.35rem !important;
+  font-weight: 900 !important;
+}
+
+body.hud-large-text .hud-label,
+body.hud-large-text .widget-label,
+body.hud-large-text .stat-label {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -57,7 +94,7 @@ header h1 {
   font-weight: 800;
   letter-spacing: 4px;
   text-transform: uppercase;
-  background: linear-gradient(90deg, #00f3ff, #ff007f);
+  background: linear-gradient(90deg, var(--border-neon-cyan), var(--border-neon-pink));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
@@ -160,17 +197,18 @@ header p {
   padding: 10px;
 }
 
-.hud-card {
+.hud-card, .hud-widget {
   display: flex;
   flex-direction: column;
   align-items: center;
   background: rgba(26, 10, 48, 0.6);
   border: 1px solid rgba(0, 243, 255, 0.2);
   border-radius: 4px;
-  padding: 6px 4px;
+  padding: 6px 10px;
+  flex: 1;
 }
 
-.hud-label {
+.hud-label, .widget-label {
   font-size: 0.65rem;
   color: var(--text-dim);
   letter-spacing: 0.5px;
@@ -178,7 +216,7 @@ header p {
   margin-bottom: 2px;
 }
 
-.hud-value {
+.hud-value, .widget-value {
   font-family: monospace;
   font-size: 0.95rem;
   font-weight: 700;

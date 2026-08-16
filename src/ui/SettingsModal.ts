@@ -22,10 +22,31 @@ export class SettingsModal {
     this.containerEl = document.createElement('div');
     this.containerEl.className = 'summary-overlay';
     this.containerEl.innerHTML = `
-      <div class="summary-card" style="max-width: 520px;">
-        <h2 class="summary-title val-cyan">RETRO SETTINGS & BATTERY</h2>
+      <div class="summary-card" style="max-width: 540px; max-height: 88vh; overflow-y: auto;">
+        <h2 class="summary-title val-cyan">RETRO SETTINGS & ACCESSIBILITY</h2>
         
         <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+          <!-- Colorblind Accessibility Theme -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-family: monospace; font-size: 0.9rem; color: #00f3ff;">Colorblind Palette:</label>
+            <select id="setting-theme-select" style="background: #0d0221; color: #ff007f; border: 1px solid #ff007f; padding: 4px 8px; border-radius: 4px; font-family: monospace;">
+              <option value="default">Default Cyber Neon</option>
+              <option value="deuteranopia">Deuteranopia (Blue / Orange)</option>
+              <option value="protanopia">Protanopia (Sky / Crimson)</option>
+              <option value="tritanopia">Tritanopia (Teal / Rose)</option>
+              <option value="monochrome">High-Contrast Monochrome</option>
+            </select>
+          </div>
+
+          <!-- Large Text HUD Scale Mode -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <label style="font-family: monospace; font-size: 0.9rem; color: #00f3ff;">Large Text HUD (Sunlight):</label>
+              <div style="font-size: 0.7rem; color: #8b949e;">Enlarges HUD metrics for bright outdoor running</div>
+            </div>
+            <input type="checkbox" id="setting-large-text" style="width: 20px; height: 20px; accent-color: #00f3ff;" />
+          </div>
+
           <!-- CRT Shader Toggle -->
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <label style="font-family: monospace; font-size: 0.9rem; color: #00f3ff;">CRT Scanline Shader:</label>
@@ -71,6 +92,8 @@ export class SettingsModal {
   private bindEvents(): void {
     if (!this.containerEl) return;
 
+    const themeSelect = this.containerEl.querySelector('#setting-theme-select') as HTMLSelectElement;
+    const largeTextCheck = this.containerEl.querySelector('#setting-large-text') as HTMLInputElement;
     const crtCheck = this.containerEl.querySelector('#setting-crt') as HTMLInputElement;
     const amoledCheck = this.containerEl.querySelector('#setting-amoled') as HTMLInputElement;
     const voiceVol = this.containerEl.querySelector('#setting-voice-vol') as HTMLInputElement;
@@ -96,6 +119,17 @@ export class SettingsModal {
       StorageService.saveSettings(newSettings);
       VoiceAnnouncer.setVolume(newSettings.audioVolume);
       HapticsEngine.setEnabled(newSettings.enableAudioAlerts);
+
+      // Apply Colorblind theme class
+      document.body.className = '';
+      if (themeSelect.value !== 'default') {
+        document.body.classList.add(`theme-${themeSelect.value}`);
+      }
+
+      // Apply Large Text mode
+      if (largeTextCheck.checked) {
+        document.body.classList.add('hud-large-text');
+      }
 
       // Apply AMOLED black mode
       if (amoledCheck.checked) {
