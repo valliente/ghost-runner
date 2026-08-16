@@ -11,12 +11,14 @@ export interface GPSTrackerCallback {
 export class GPSTracker {
   private watchId: string | null = null;
   private isTracking: boolean = false;
+  private isPowerSaveMode: boolean = false;
   private startTime: number = 0;
 
   private points: TelemetryPoint[] = [];
   private totalDistanceMeters: number = 0;
   private lastPosition: { lat: number; lon: number; timestamp: number } | null = null;
   private currentHeading: number = 0; // Bearing in radians
+  private lastMovementTimestamp: number = 0;
 
   private kalmanFilter: GPSKalmanFilter = new GPSKalmanFilter();
   private callback?: GPSTrackerCallback;
@@ -28,29 +30,14 @@ export class GPSTracker {
     this.lastPosition = null;
     this.currentHeading = 0;
     this.startTime = Date.now();
+    this.lastMovementTimestamp = this.startTime;
     this.isTracking = true;
     this.kalmanFilter.reset();
 
     try {
       // Request Android / iOS native location permissions
       await Geolocation.requestPermissions();
-      this.watchId = await Geolocation.watchPosition(
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 },
-        (position, err) => {
-          if (err || !position) {
-            console.warn('GPSTracker: Watch position error, attempting dead reckoning fallback:', err);
-            this.applyDeadReckoningStep();
-            return;
-          }
-          this.handleNewPosition(
-            position.coords.latitude,
-            position.coords.longitude,
-            position.coords.speed,
-            position.timestamp,
-            position.coords.accuracy
-          );
-        }
-      );
+      await this.initWatchPosition();
     } catch (e) {
       console.warn('GPSTracker: Falling back to HTML5 Web Geolocation:', e);
       if ('geolocation' in navigator) {
@@ -68,9 +55,49 @@ export class GPSTracker {
             console.warn('Web Geolocation error:', err);
             this.applyDeadReckoningStep();
           },
-          { enableHighAccuracy: true }
+          { enableHighAccuracy: !this.isPowerSaveMode }
         );
         this.watchId = id.toString();
+      }
+    }
+  }
+
+  private async initWatchPosition(): Promise<void> {
+    if (this.watchId) {
+      try {
+        await Geolocation.clearWatch({ id: this.watchId });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    const timeout = this.isPowerSaveMode ? 20000 : 10000;
+    const maximumAge = this.isPowerSaveMode ? 10000 : 1000;
+
+    this.watchId = await Geolocation.watchPosition(
+      { enableHighAccuracy: !this.isPowerSaveMode, timeout, maximumAge },
+      (position, err) => {
+        if (err || !position) {
+          console.warn('GPSTracker: Watch position error, attempting dead reckoning fallback:', err);
+          this.applyDeadReckoningStep();
+          return;
+        }
+        this.handleNewPosition(
+          position.coords.latitude,
+          position.coords.longitude,
+          position.coords.speed,
+          position.timestamp,
+          position.coords.accuracy
+        );
+      }
+    );
+  }
+
+  public setPowerSaveMode(enabled: boolean): void {
+    if (this.isPowerSaveMode !== enabled) {
+      this.isPowerSaveMode = enabled;
+      if (this.isTracking) {
+        this.initWatchPosition();
       }
     }
   }
@@ -130,6 +157,17 @@ export class GPSTracker {
       if (timeDeltaSec > 0) {
         speed = distDelta / timeDeltaSec;
       }
+    }
+
+    // Adaptive power throttling: If stationary for > 30s, enable power save throttle
+    const now = Date.now();
+    if (speed > 1.5) {
+      this.lastMovementTimestamp = now;
+      if (this.isPowerSaveMode) {
+        this.setPowerSaveMode(false);
+      }
+    } else if (now - this.lastMovementTimestamp > 30000 && !this.isPowerSaveMode) {
+      this.setPowerSaveMode(true);
     }
 
     const pace = speed > 0 ? 1000 / (speed * 60) : 0;
