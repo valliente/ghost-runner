@@ -16,6 +16,9 @@ export default defineConfig({
           if (id.includes('node_modules/@capacitor')) {
             return 'capacitor';
           }
+          if (id.includes('gpxparser') || id.includes('FITParser') || id.includes('HealthKitParser') || id.includes('ActivityExporter')) {
+            return 'parsers';
+          }
         }
       }
     }
