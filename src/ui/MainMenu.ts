@@ -3,6 +3,7 @@ import type { SavedRun } from '../services/StorageService';
 import { MockRunGenerator } from '../services/MockRunGenerator';
 import { GPXParserService } from '../services/GPXParserService';
 import type { GhostVector } from '../engine/GhostEngine';
+import { AIPacer, type PacingStrategy } from '../engine/AIPacer';
 
 export interface MainMenuOptions {
   onSelectGhost: (vector: GhostVector, trackName: string) => void;
@@ -23,10 +24,44 @@ export class MainMenu {
     this.containerEl = document.createElement('div');
     this.containerEl.className = 'main-menu-overlay';
     this.containerEl.innerHTML = `
-      <div class="main-menu-card">
-        <h2 class="menu-title">SELECT TRACK / GHOST</h2>
+      <div class="main-menu-card" style="max-height: 88vh; overflow-y: auto;">
+        <h2 class="menu-title">SELECT TRACK / AI PACER</h2>
         
-        <div class="menu-section">
+        <!-- AI PACER BOTS SECTION -->
+        <div class="menu-section" style="border: 1px solid #ff007f; padding: 12px; border-radius: 8px; background: rgba(255, 0, 127, 0.06);">
+          <h3 class="val-pink" style="margin-top: 0;">⚡ AI PACER BOT (v1.102)</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label style="font-family: monospace; font-size: 0.85rem; color: #00f3ff; min-width: 70px;">Strategy:</label>
+              <select id="pacer-strategy-select" style="background: #0d0221; color: #ff007f; border: 1px solid #ff007f; padding: 4px 8px; border-radius: 4px; font-family: monospace; flex: 1;">
+                <option value="negative_split">Negative Split (Ramp Finish)</option>
+                <option value="surge_recover">Surge & Recover (Tactical Attacks)</option>
+                <option value="constant_cadence">Constant Cadence (Metronomic)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label style="font-family: monospace; font-size: 0.85rem; color: #00f3ff; min-width: 70px;">Distance:</label>
+              <select id="pacer-distance-select" style="background: #0d0221; color: #00f3ff; border: 1px solid #00f3ff; padding: 4px 8px; border-radius: 4px; font-family: monospace; flex: 1;">
+                <option value="3000">3.0 KM Arcade Sprint</option>
+                <option value="5000" selected>5.0 KM Circuit</option>
+                <option value="10000">10.0 KM Neon Highway</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label style="font-family: monospace; font-size: 0.85rem; color: #00f3ff; min-width: 70px;">Target Pace:</label>
+              <input type="text" id="pacer-pace-input" value="4:15" placeholder="4:15" style="background: #0d0221; color: #ffd700; border: 1px solid #ffd700; padding: 4px 8px; border-radius: 4px; font-family: monospace; width: 80px;" />
+              <span style="font-size: 0.8rem; color: #8b949e;">min/km</span>
+              <button id="btn-start-ai-pacer" class="btn btn-sm btn-pink" style="margin-left: auto;">RACE AI BOT</button>
+            </div>
+            <div id="pacer-desc" style="font-size: 0.75rem; color: #8b949e; font-style: italic;">
+              Starts 5% conservative, progressively ramps +10% faster to crush the finish line.
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-section" style="margin-top: 14px;">
           <h3>PREDEFINED SYNTHWAVE TRACKS</h3>
           <div class="track-list">
             <button class="menu-btn track-btn" data-track="5k">
@@ -68,6 +103,40 @@ export class MainMenu {
 
   private bindEvents(): void {
     if (!this.containerEl) return;
+
+    // AI Pacer Strategy description sync
+    const strategySelect = this.containerEl.querySelector('#pacer-strategy-select') as HTMLSelectElement;
+    const descEl = this.containerEl.querySelector('#pacer-desc') as HTMLElement;
+    if (strategySelect && descEl) {
+      strategySelect.addEventListener('change', () => {
+        descEl.textContent = AIPacer.getStrategyDescription(strategySelect.value as PacingStrategy);
+      });
+    }
+
+    // AI Pacer Race Button
+    const aiBtn = this.containerEl.querySelector('#btn-start-ai-pacer') as HTMLButtonElement;
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        const strategy = (this.containerEl?.querySelector('#pacer-strategy-select') as HTMLSelectElement).value as PacingStrategy;
+        const distMeters = parseInt((this.containerEl?.querySelector('#pacer-distance-select') as HTMLSelectElement).value, 10);
+        const paceStr = (this.containerEl?.querySelector('#pacer-pace-input') as HTMLInputElement).value || '4:15';
+
+        const parts = paceStr.split(':');
+        const mins = parseFloat(parts[0]) || 4;
+        const secs = parseFloat(parts[1]) || 15;
+        const targetPace = mins + secs / 60;
+
+        const vector = AIPacer.generatePacerVector({
+          name: `AI Pacer (${strategy})`,
+          strategy,
+          targetPaceMinKm: targetPace,
+          totalDistanceMeters: distMeters
+        });
+
+        this.options.onSelectGhost(vector, `AI Bot [${strategy.replace('_', ' ').toUpperCase()}]`);
+        this.destroy();
+      });
+    }
 
     // Track Selection Buttons
     const trackBtns = this.containerEl.querySelectorAll('.track-btn');
