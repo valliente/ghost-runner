@@ -1,61 +1,26 @@
 # Ghost Runner 🏃‍♂️👻
 
-> **Retro 2D Hybrid Fitness Engine for PC & Mobile**
+> **Retro 2D Hybrid Fitness Engine for PC & Mobile (v1.101)**
 
-Ghost Runner is a retro 80s-inspired cyberpunk 2D side-scrolling fitness application. It combines real-time GPS telemetry tracking, GPX workout parsing, dynamic Phaser 2D pixel-art graphics, and zero-dependency procedural synthwave audio loops using Tone.js.
+Ghost Runner is a retro 80s-inspired cyberpunk 2D side-scrolling fitness application. It combines real-time GPS telemetry tracking with Kalman filter smoothing, GPX/TCX workout parsing, dynamic Phaser 2D pixel-art graphics, multi-track Tone.js synthwave audio, and robotic voice coaching.
 
 ![Ghost Runner Overview](https://img.shields.io/badge/Platform-PC%20%7C%20Android-cyan?style=for-the-badge)
 ![Tech Stack](https://img.shields.io/badge/Stack-Phaser%203%20%7C%20Tone.js%20%7C%20Capacitor%20%7C%20Tauri-pink?style=for-the-badge)
+![Version](https://img.shields.io/badge/Release-v1.101.0-gold?style=for-the-badge)
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features (v1.101)
 
-- 🏎️ **Ghost Telemetry Engine**: Frame-by-frame linear vector interpolation of previous runs or GPX time-series data.
-- 🎵 **Adaptive Synthwave Audio**: Zero-external-dependency Web Audio synthesizers (Bass, PolySynth Lead, Drums). The `Tone.Transport.bpm` and low-pass filter frequency dynamically adjust based on your live pace delta against the ghost.
-- 📊 **Real-Time HUD & Analytics Dashboard**: Live metrics for current pace (`min/km`), total distance, elapsed duration, pace delta (`ahead`/`behind`), and 1km split times.
-- 👹 **Arcade Boss Run Mode**: Boss fights spawn at distance markers requiring sustained speed intervals to defeat.
-- ⚡ **Nitro Boost**: Maintaining pace 15% faster than target for 30 seconds triggers a Nitro Sprint multiplier and cyan visual aura.
-- 📍 **GPS & GPX Support**: Native `@capacitor/geolocation` support for Android continuous tracking and drag-and-drop `.gpx` file parsing.
-- 📱 **Cross-Platform Desktop & Mobile**: Desktop PC app powered by **Tauri** and Android app powered by **Capacitor**.
-
----
-
-## 📁 Repository Architecture
-
-```
-ghost-runner/
-├── android/                   # Capacitor Android Native Project & AndroidStudio workspace
-├── src-tauri/                 # Tauri Rust desktop windowing configuration
-├── src/
-│   ├── engine/
-│   │   ├── GhostEngine.ts     # Telemetry interpolation & vector mathematical modeling
-│   │   ├── BossRunMode.ts    # Arcade Boss battle state & HP tracking
-│   │   └── GhostEngine.test.ts
-│   ├── audio/
-│   │   ├── AdaptiveAudio.ts   # Tone.js procedural synthwave audio loop & filter modulation
-│   │   └── SFXEngine.ts       # 8-bit retro sound effects for game events
-│   ├── scenes/
-│   │   ├── BootScene.ts       # Procedural 16x16 pixel-art texture generator
-│   │   └── RunnerScene.ts     # Phaser 3 2D side-scroller, parallax track & state machine
-│   ├── services/
-│   │   ├── GPXParserService.ts# GPX XML parser & Haversine distance calculator
-│   │   ├── GPSTracker.ts      # Real-time GPS location tracker
-│   │   ├── StorageService.ts  # LocalStorage persistence for ghosts & user settings
-│   │   ├── StravaService.ts   # Strava OAuth API integration
-│   │   └── BluetoothHR.ts     # Web Bluetooth Heart Rate Monitor service
-│   ├── shaders/
-│   │   └── CRTShader.ts       # GLSL post-processing CRT scanline & bloom pipeline
-│   ├── ui/
-│   │   ├── MainMenu.ts        # Retro track selection modal
-│   │   └── PostRunSummary.ts  # Analytics summary modal & SVG pace comparison chart
-│   ├── style.css              # Cyberpunk UI aesthetics & responsive breakpoints
-│   └── main.ts                # Application entry point
-├── capacitor.config.ts
-├── tauri.conf.json
-├── package.json
-└── README.md
-```
+- 🏎️ **Ghost Fleet Engine**: Race multiple concurrent ghosts (Personal Best, 30-Day Average, Target Pace) with a live HUD mini-radar.
+- 📡 **Kalman Filter & Dead Reckoning**: Eliminates noisy GPS jitter and uses geodetic dead reckoning during satellite dropouts.
+- 🎵 **Multi-Track Synthwave Stem Mixer**: Procedural Web Audio synth stems (Drums, Bassline, 80s Arp, Ambient Pad) that automate based on your exertion zone.
+- 🗣️ **Robotic Voice Announcer**: Real-time kilometer split pace and ghost proximity callouts using pitch-shifted Web Speech synthesis.
+- ⛰️ **Elevation & Grade Adjusted Pace**: Computes Total Elevation Gain (TEG) and Grade Adjusted Pace (GAP) using Minetti biomechanical cost scaling.
+- 📳 **Adaptive Haptics Metronome**: Custom vibration pulses for ghost overtakes, milestone impacts, and cadence rhythm assist.
+- 💾 **Activity Exporter & Replay**: Serializes sessions into GPX 1.1 / TCX files and provides an interactive 2D top-down route replay with elevation scrubber.
+- 📱 **Android Foreground Service & Notifications**: Live lock screen workout metrics and AMOLED battery-saving mode.
+- 💻 **Tauri Desktop v2**: Frameless retro window, system tray, global hotkeys (`Space`, `M`, `R`, `S`), and `.gpx` file association.
 
 ---
 
@@ -77,38 +42,60 @@ npm install
 
 # Start Vite local dev server
 npm run dev
+
+# Run automated Vitest test suite
+npm test
 ```
-
----
-
-## 📱 Compiling Android `.apk` (Capacitor)
-
-```bash
-# 1. Build Vite web distribution
-npm run build
-
-# 2. Sync distribution assets to native Android project
-npx cap sync android
-
-# 3. Open Android Studio to build APK or bundle
-npx cap open android
-```
-*In Android Studio:* Go to `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
 
 ---
 
 ## 💻 Compiling PC `.exe` / App Bundle (Tauri)
 
 ```bash
-# Run Tauri desktop app in dev mode
-npx tauri dev
+# 1. Build web distribution
+npm run build
 
-# Build production Windows executable (.exe / .msi)
+# 2. Build production Windows installer (.exe / .msi)
 npx tauri build
 ```
-Output binaries will be saved in `src-tauri/target/release/bundle/`.
+Output binaries will be saved in `src-tauri/target/release/bundle/nsis/GhostRunner-v1.101-Setup.exe`.
+
+---
+
+## 📱 Compiling Android APK (Capacitor)
+
+```bash
+# 1. Build web distribution & sync native assets
+npm run build
+npx cap sync android
+
+# 2. Compile release APK using Gradle wrapper
+cd android
+./gradlew assembleRelease
+# (On Windows PowerShell: .\gradlew.bat assembleRelease)
+```
+Output APK is located at `android/app/build/outputs/apk/release/app-release-unsigned.apk`.
+
+---
+
+## 🔧 Hardware & Device Troubleshooting
+
+### 1. Bluetooth Low Energy (BLE) Heart Rate Monitors
+- **Supported Sensors**: Polar H10, Garmin HRM-Pro/Dual, Wahoo TICKR, Scosche Rhythm+.
+- **Setup**:
+  1. Ensure Bluetooth is enabled on your PC/Phone.
+  2. In Ghost Runner, click **CONNECT BLE HR**.
+  3. Select your heart rate monitor from the Web Bluetooth dialog.
+  4. The canvas border glow will dynamically reflect your exertion zone (Zone 1 Cyan to Zone 5 Strobe Red).
+
+### 2. Android GPS & Background Battery Optimization
+To ensure the GPS tracker and Foreground Service never get killed by Android Doze Mode:
+1. Open Android **Settings > Apps > Ghost Runner**.
+2. Go to **Battery > Battery Usage**.
+3. Set background usage to **Unrestricted** (Don't optimize).
+4. Verify **Location Permission** is set to **Allow all the time** (including Precise Location).
 
 ---
 
 ## 📜 License
-MIT License. Built for retro fitness enthusiasts!
+MIT License. Built for retro cyberpunk fitness enthusiasts!
