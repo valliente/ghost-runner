@@ -5,12 +5,17 @@ export interface TelemetryPoint {
   speed: number;     // Speed in meters per second (m/s)
   distance: number;  // Cumulative distance in meters
   pace?: number;     // Pace in minutes per kilometer (min/km)
+  elevation?: number;// Elevation in meters
+  cadence?: number;  // Steps per minute (SPM)
+  grade?: number;    // Grade percentage (%)
+  gradeAdjustedPace?: number; // Grade Adjusted Pace (min/km)
 }
 
 export interface GhostVector {
   points: TelemetryPoint[];
   totalDistance: number;
   totalDuration: number;
+  totalElevationGain?: number;
 }
 
 export class GhostEngine {
