@@ -158,26 +158,38 @@ export class MainMenu {
       });
     });
 
-    // Custom GPX Loader
-    const gpxInput = this.containerEl.querySelector('#menu-gpx-input') as HTMLInputElement;
-    if (gpxInput) {
-      gpxInput.addEventListener('change', (e) => {
+    // Multi-Format File Loader (.gpx, .fit, .xml)
+    const fileInput = this.containerEl.querySelector('#menu-gpx-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.accept = '.gpx,.fit,.xml';
+      fileInput.addEventListener('change', async (e) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            const xmlText = evt.target?.result as string;
-            if (xmlText) {
-              try {
-                const vector = GPXParserService.parseGPX(xmlText);
-                this.options.onSelectGhost(vector, target.files![0].name);
-                this.destroy();
-              } catch (err: any) {
-                alert(`Error loading GPX: ${err?.message || err}`);
-              }
+          const file = target.files[0];
+          const ext = file.name.split('.').pop()?.toLowerCase();
+
+          try {
+            if (ext === 'fit') {
+              const buffer = await file.arrayBuffer();
+              const { FITParserService } = await import('../services/FITParserService');
+              const vector = FITParserService.parseFIT(buffer);
+              this.options.onSelectGhost(vector, file.name);
+              this.destroy();
+            } else if (ext === 'xml') {
+              const text = await file.text();
+              const { HealthKitParser } = await import('../services/HealthKitParser');
+              const vector = HealthKitParser.parseHealthXML(text);
+              this.options.onSelectGhost(vector, file.name);
+              this.destroy();
+            } else {
+              const text = await file.text();
+              const vector = GPXParserService.parseGPX(text);
+              this.options.onSelectGhost(vector, file.name);
+              this.destroy();
             }
-          };
-          reader.readAsText(target.files[0]);
+          } catch (err: any) {
+            alert(`Error parsing workout file (${file.name}): ${err?.message || err}`);
+          }
         }
       });
     }
