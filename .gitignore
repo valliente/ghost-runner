@@ -8,8 +8,14 @@ dist-ssr/
 # Tauri build artifacts
 src-tauri/target/
 
-# Capacitor / Android native directory
-android/
+# Android build caches (keep android/ project files tracked)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/.idea/
+android/.navigation/
 
 # Environment & OS files
 .DS_Store

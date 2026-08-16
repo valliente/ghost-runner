@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ghost Runner</string>
+    <string name="title_activity_main">Ghost Runner</string>
+    <string name="package_name">com.ghostrunner.app</string>
+    <string name="custom_url_scheme">com.ghostrunner.app</string>
+</resources>
