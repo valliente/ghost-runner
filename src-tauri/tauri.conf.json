@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Ghost Runner",
-        "width": 800,
-        "height": 600,
+        "width": 860,
+        "height": 680,
         "resizable": true,
         "fullscreen": false
       }
@@ -33,8 +33,22 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "android": {
-      "debugApplicationIdSuffix": ".debug"
+    "fileAssociations": [
+      {
+        "ext": ["gpx"],
+        "name": "GPX Workout File",
+        "description": "GPS eXchange Format workout file for Ghost Runner",
+        "role": "Viewer"
+      }
+    ],
+    "windows": {
+      "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": "always",
+        "createStartMenuShortcut": true,
+        "shortcutName": "Ghost Runner"
+      }
     }
   }
 }
