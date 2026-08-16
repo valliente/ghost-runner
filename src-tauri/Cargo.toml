@@ -1,7 +1,7 @@
 [package]
 name = "app"
-version = "0.1.0"
-description = "A Tauri App"
+version = "1.101.0"
+description = "Ghost Runner Desktop"
 authors = ["you"]
 license = ""
 repository = ""
