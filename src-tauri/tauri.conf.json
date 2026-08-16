@@ -40,15 +40,6 @@
         "description": "GPS eXchange Format workout file for Ghost Runner",
         "role": "Viewer"
       }
-    ],
-    "windows": {
-      "nsis": {
-        "oneClick": false,
-        "allowToChangeInstallationDirectory": true,
-        "createDesktopShortcut": "always",
-        "createStartMenuShortcut": true,
-        "shortcutName": "Ghost Runner"
-      }
-    }
+    ]
   }
 }
