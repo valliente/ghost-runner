@@ -33,6 +33,10 @@ export class AdaptiveAudioEngine {
   private currentBpm: number = 120;
   private currentFilterFreq: number = 2500;
   private currentExertionZone: number = 2;
+  private currentGradeSlope: number = 0;
+
+  // Procedural Synth Scales (Dorian Minor)
+  private static readonly D_DORIAN_SCALE = ['D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5'];
 
   public async init(): Promise<void> {
     if (this.isInitialized) return;
@@ -53,7 +57,7 @@ export class AdaptiveAudioEngine {
     this.drumsGain = new Tone.Gain(1.0).connect(this.filter);
     this.bassGain = new Tone.Gain(0.9).connect(this.filter);
     this.leadGain = new Tone.Gain(0.8).connect(this.filter);
-    this.arpGain = new Tone.Gain(0.0).connect(this.filter); // Activated in higher exertion zones
+    this.arpGain = new Tone.Gain(0.0).connect(this.filter);
     this.padGain = new Tone.Gain(0.7).connect(this.filter);
 
     // 4. Bassline Synth
@@ -125,7 +129,9 @@ export class AdaptiveAudioEngine {
     const arpNotes = ['C5', 'G4', 'D#5', 'G5', 'A#4', 'F5', 'D5', 'G5'];
     this.arpLoop = new Tone.Sequence(
       (time, note) => {
-        this.arpSynth.triggerAttackRelease(note, '32n', time);
+        // Adapt pitch to terrain slope
+        const pitch = this.calculatePitchForSlope(note);
+        this.arpSynth.triggerAttackRelease(pitch, '32n', time);
       },
       arpNotes,
       '16n'
@@ -159,6 +165,35 @@ export class AdaptiveAudioEngine {
 
     Tone.Transport.bpm.value = 120;
     this.isInitialized = true;
+  }
+
+  private calculatePitchForSlope(baseNote: string): string {
+    if (this.currentGradeSlope > 2.0) {
+      // Uphill: Transpose higher
+      return baseNote.replace('4', '5').replace('5', '6');
+    } else if (this.currentGradeSlope < -2.0) {
+      // Downhill: Resolve lower
+      return baseNote.replace('5', '4').replace('6', '5');
+    }
+    return baseNote;
+  }
+
+  public setElevationSlope(gradePercent: number): void {
+    this.currentGradeSlope = gradePercent;
+  }
+
+  /**
+   * Generates a procedural synthwave lead arpeggio melody locked to Dorian scale.
+   */
+  public generateProceduralMelody(seed: number): string[] {
+    const melody: string[] = [];
+    const scale = AdaptiveAudioEngine.D_DORIAN_SCALE;
+
+    for (let i = 0; i < 8; i++) {
+      const idx = Math.abs(Math.floor(Math.sin(seed + i * 1.5) * scale.length)) % scale.length;
+      melody.push(scale[idx]);
+    }
+    return melody;
   }
 
   public async startMusic(): Promise<void> {
@@ -200,35 +235,35 @@ export class AdaptiveAudioEngine {
     if (!this.isInitialized) return;
 
     switch (zone) {
-      case 1: // Recovery / Warmup
+      case 1:
         this.padGain.gain.rampTo(1.0, 0.5);
         this.bassGain.gain.rampTo(0.5, 0.5);
         this.leadGain.gain.rampTo(0.2, 0.5);
         this.arpGain.gain.rampTo(0.0, 0.5);
         this.drumsGain.gain.rampTo(0.4, 0.5);
         break;
-      case 2: // Aerobic Easy
+      case 2:
         this.padGain.gain.rampTo(0.8, 0.5);
         this.bassGain.gain.rampTo(0.7, 0.5);
         this.leadGain.gain.rampTo(0.5, 0.5);
         this.arpGain.gain.rampTo(0.1, 0.5);
         this.drumsGain.gain.rampTo(0.7, 0.5);
         break;
-      case 3: // Tempo / Steady
+      case 3:
         this.padGain.gain.rampTo(0.6, 0.5);
         this.bassGain.gain.rampTo(0.9, 0.5);
         this.leadGain.gain.rampTo(0.8, 0.5);
         this.arpGain.gain.rampTo(0.4, 0.5);
         this.drumsGain.gain.rampTo(0.9, 0.5);
         break;
-      case 4: // Threshold / Sprint
+      case 4:
         this.padGain.gain.rampTo(0.4, 0.5);
         this.bassGain.gain.rampTo(1.0, 0.5);
         this.leadGain.gain.rampTo(1.0, 0.5);
         this.arpGain.gain.rampTo(0.9, 0.5);
         this.drumsGain.gain.rampTo(1.1, 0.5);
         break;
-      case 5: // Max Effort / Boss Sprint
+      case 5:
         this.padGain.gain.rampTo(0.2, 0.5);
         this.bassGain.gain.rampTo(1.1, 0.5);
         this.leadGain.gain.rampTo(1.2, 0.5);
@@ -238,9 +273,6 @@ export class AdaptiveAudioEngine {
     }
   }
 
-  /**
-   * Connects Tone.Transport.bpm and filter frequency to the live speed ratio between Player and Ghost.
-   */
   public updateTempoAndTone(paceRatio: number): { bpm: number; filterFreq: number } {
     if (!this.isInitialized) return { bpm: 120, filterFreq: 2500 };
 
