@@ -1,26 +1,26 @@
 # Ghost Runner 🏃‍♂️👻
 
-> **Retro 2D Hybrid Fitness Engine for PC & Mobile (v1.102)**
+> **Retro 2D Hybrid Fitness Engine for PC & Mobile (v1.103)**
 
-Ghost Runner is a retro 80s-inspired cyberpunk 2D side-scrolling fitness application. It combines real-time GPS telemetry tracking with Kalman filter smoothing, multi-format FIT/GPX/XML parsing, dynamic Phaser 2D pixel-art graphics, multi-track Tone.js synthwave audio, AI pacer bots, and robotic voice coaching.
+Ghost Runner is a retro 80s-inspired cyberpunk 2D side-scrolling fitness application. It combines real-time GPS telemetry tracking with Kalman filter smoothing, multi-format FIT/GPX/XML parsing, cloud ghost sharing, dynamic Phaser 2D pixel-art graphics, multi-track Tone.js synthwave audio, AI pacer bots, Cyber Garage cosmetics, and robotic voice coaching.
 
 ![Ghost Runner Overview](https://img.shields.io/badge/Platform-PC%20%7C%20Android-cyan?style=for-the-badge)
 ![Tech Stack](https://img.shields.io/badge/Stack-Phaser%203%20%7C%20Tone.js%20%7C%20Capacitor%20%7C%20Tauri-pink?style=for-the-badge)
-![Version](https://img.shields.io/badge/Release-v1.102.0-gold?style=for-the-badge)
+![Version](https://img.shields.io/badge/Release-v1.103.0-gold?style=for-the-badge)
 
 ---
 
-## 🌟 Key Features (v1.102)
+## 🌟 Key Features (v1.103)
 
-- 🤖 **Dynamic AI Pacer Bots**: Race against intelligent pacing algorithms (*Negative Split*, *Surge & Recover*, *Constant Cadence*).
-- ⚡ **Live Route Segment Sprints**: Automated micro-sprint segment triggers with real-time PR delta countdowns.
-- 🎵 **Adaptive Cadence Metronome**: Dedicated Tone.js synthesized rhythm assist with customizable SPM rates (120-220 SPM).
-- 📁 **Binary FIT & HealthKit Imports**: Direct native decoding of Garmin/Wahoo `.fit` binaries and Apple Health XML workout routes.
-- 🎨 **Modular Cyberpunk HUD & Neo-Tokyo Parallax**: Customizable widget dashboard and 4-layer Neo-Tokyo parallax skyline with reactive billboards.
-- 📊 **Split-Screen Synchronized Replay**: Side-by-side comparative race viewer with interactive telemetry curves (Pace, Elevation, HR).
-- 👁️ **Accessibility & Sunlight Mode**: High-contrast colorblind themes (Deuteranopia, Protanopia, Tritanopia, Monochrome) and large text HUD scaling.
-- ⚡ **Web Worker Offloading & Object Pooling**: Zero frame drops with off-thread Kalman matrix math and sprite memory recycling.
-- 🔋 **Adaptive Sensor Throttling**: Intelligent battery-saver GPS polling rates extending outdoor battery lifespan.
+- 🌐 **Cloud Ghost Network & QR Sharing**: Publish tracks to Supabase, challenge community leaderboard ghosts, and generate peer QR codes.
+- 🏎️ **Cyber Garage & XP Progression**: Unlock avatar skins (*Cyber Shinobi*, *Synth Valkyrie*, *Retro Mech*) and particle trails as you level up.
+- 🏆 **Retro Trophies & Boss Battles**: 15 arcade achievements and multi-stage Cyber Boss Battles (*Overdrive Mech*, *Neon Phantom*, *Void Glitcher*).
+- 👟 **Bluetooth RSC Foot Pod Support**: Pair Bluetooth Running Speed & Cadence foot pods for instant indoor treadmill speed.
+- 📡 **Live Companion Telemetry Stream**: WebSocket & BroadcastChannel telemetry bridge for smartwatches and secondary screens.
+- 🤖 **AI Pacer Bots & Coach Personas**: Choose between *Arcade Announcer*, *Drill Master*, and *Zen Guide* voice coaches.
+- ⛰️ **3D Isometric Elevation Minimap**: Angled topography wireframe visualization with real-time elevation profile markers.
+- ⚡ **Wasm Math & LZ-String Compression**: WebAssembly-accelerated physics and >70% database storage compression.
+- 📱 **Android Edge-to-Edge Display**: Full transparent status bar and gesture navigation support.
 
 ---
 
@@ -43,7 +43,7 @@ npm install
 # Start Vite local dev server
 npm run dev
 
-# Run automated Vitest test suite
+# Run automated Vitest test suite (23 tests)
 npm test
 ```
 
@@ -58,7 +58,7 @@ npm run build
 # 2. Build production Windows installer (.exe / .msi)
 npx tauri build
 ```
-Output binaries will be saved in `src-tauri/target/release/bundle/nsis/GhostRunner-v1.102-Setup.exe`.
+Output binaries will be saved in `src-tauri/target/release/bundle/nsis/GhostRunner-v1.103-Setup.exe`.
 
 ---
 
@@ -80,13 +80,9 @@ Output APK is located at `android/app/build/outputs/apk/release/app-release-unsi
 
 ## 🔧 Hardware & Device Troubleshooting
 
-### 1. Bluetooth Low Energy (BLE) Heart Rate Monitors
-- **Supported Sensors**: Polar H10, Garmin HRM-Pro/Dual, Wahoo TICKR, Scosche Rhythm+.
-- **Setup**:
-  1. Ensure Bluetooth is enabled on your PC/Phone.
-  2. In Ghost Runner, click **CONNECT BLE HR**.
-  3. Select your heart rate monitor from the Web Bluetooth dialog.
-  4. The canvas border glow will dynamically reflect your exertion zone (Zone 1 Cyan to Zone 5 Strobe Red).
+### 1. Bluetooth Low Energy (BLE) Sensors
+- **Supported Sensors**: Heart rate monitors (Polar H10, Garmin HRM-Pro, Wahoo TICKR) and RSC Foot Pods (Stryd, Zwift RunPod, Garmin Foot Pod).
+- **Setup**: In Ghost Runner, click **CONNECT BLE HR** or pair in Settings.
 
 ### 2. Android GPS & Background Battery Optimization
 To ensure the GPS tracker and Foreground Service never get killed by Android Doze Mode:
