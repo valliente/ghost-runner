@@ -1,6 +1,6 @@
 [package]
-name = "app"
-version = "1.102.0"
+name = "ghost-runner"
+version = "1.103.0"
 description = "Ghost Runner Desktop"
 authors = ["you"]
 license = ""
