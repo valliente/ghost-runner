@@ -49,13 +49,13 @@ jobs:
         run: |
           cd android
           ./gradlew assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk ../GhostRunner-v1.102.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../GhostRunner-v1.103.apk
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ghost-runner-android-apk
-          path: GhostRunner-v1.102.apk
+          path: GhostRunner-v1.103.apk
 
   tauri-build:
     name: Build Desktop App (${{ matrix.os }})
@@ -95,7 +95,7 @@ jobs:
         run: |
           $exe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
           if ($exe) {
-            Copy-Item $exe.FullName -Destination "GhostRunner-v1.102-Setup.exe"
+            Copy-Item $exe.FullName -Destination "GhostRunner-v1.103-Setup.exe"
           }
         continue-on-error: true
 
@@ -105,7 +105,7 @@ jobs:
         with:
           name: ghost-runner-windows-installer
           path: |
-            GhostRunner-v1.102-Setup.exe
+            GhostRunner-v1.103-Setup.exe
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
 
@@ -154,7 +154,7 @@ jobs:
         run: |
           TAG_NAME="${{ github.ref_name }}"
           if [[ "$TAG_NAME" != v* ]]; then
-            TAG_NAME="v1.102"
+            TAG_NAME="v1.103"
           fi
           echo "Publishing release $TAG_NAME..."
           gh release create "$TAG_NAME" release-assets/* \
