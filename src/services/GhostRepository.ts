@@ -1,3 +1,4 @@
+import LZString from 'lz-string';
 import type { GhostVector } from '../engine/GhostEngine';
 
 export interface GhostRecord {
@@ -8,6 +9,7 @@ export interface GhostRecord {
   totalDurationSeconds: number;
   avgPaceMinKm: number;
   vector: GhostVector;
+  compressedVector?: string;
   createdAt: number;
 }
 
@@ -21,6 +23,7 @@ export interface RunRecord {
   avgPaceMinKm: number;
   elevationGainMeters: number;
   ghostVector: GhostVector;
+  compressedVector?: string;
 }
 
 export interface PersonalRecord {
@@ -79,12 +82,39 @@ export class GhostRepository {
     return this.dbPromise;
   }
 
+  /**
+   * Compresses telemetry point arrays into LZ-string encoded payload.
+   */
+  public static compressVector(vector: GhostVector): string {
+    return LZString.compressToUTF16(JSON.stringify(vector));
+  }
+
+  /**
+   * Decompresses LZ-string encoded payload back into full GhostVector.
+   */
+  public static decompressVector(compressed: string): GhostVector {
+    const raw = LZString.decompressFromUTF16(compressed);
+    if (!raw) {
+      throw new Error('Failed to decompress LZ-string telemetry vector.');
+    }
+    return JSON.parse(raw);
+  }
+
   public static async saveGhost(ghost: Omit<GhostRecord, 'id' | 'createdAt'> & { id?: string }): Promise<string> {
     const db = await this.getDB();
     const id = ghost.id || `ghost_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const record: GhostRecord = {
-      ...ghost,
+    
+    // Compress vector points to save >70% IndexedDB footprint
+    const compressed = this.compressVector(ghost.vector);
+
+    const record: any = {
       id,
+      name: ghost.name,
+      category: ghost.category,
+      totalDistanceMeters: ghost.totalDistanceMeters,
+      totalDurationSeconds: ghost.totalDurationSeconds,
+      avgPaceMinKm: ghost.avgPaceMinKm,
+      compressedVector: compressed,
       createdAt: Date.now()
     };
 
@@ -103,7 +133,16 @@ export class GhostRepository {
       const tx = db.transaction('ghosts', 'readonly');
       const store = tx.objectStore('ghosts');
       const req = store.get(id);
-      req.onsuccess = () => resolve(req.result || null);
+      req.onsuccess = () => {
+        const raw = req.result;
+        if (!raw) return resolve(null);
+
+        // Decompress if stored as compressed LZ string
+        if (raw.compressedVector) {
+          raw.vector = this.decompressVector(raw.compressedVector);
+        }
+        resolve(raw);
+      };
       req.onerror = () => reject(req.error);
     });
   }
@@ -117,7 +156,15 @@ export class GhostRepository {
       const range = IDBKeyRange.bound(minDistanceMeters, maxDistanceMeters);
       const req = index.getAll(range);
 
-      req.onsuccess = () => resolve(req.result || []);
+      req.onsuccess = () => {
+        const results = req.result || [];
+        results.forEach((r: any) => {
+          if (r.compressedVector && !r.vector) {
+            r.vector = this.decompressVector(r.compressedVector);
+          }
+        });
+        resolve(results);
+      };
       req.onerror = () => reject(req.error);
     });
   }
@@ -136,10 +183,18 @@ export class GhostRepository {
   public static async saveRun(run: Omit<RunRecord, 'id' | 'timestamp'> & { id?: string }): Promise<string> {
     const db = await this.getDB();
     const id = run.id || `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const record: RunRecord = {
-      ...run,
+    const compressed = this.compressVector(run.ghostVector);
+
+    const record: any = {
       id,
-      timestamp: Date.now()
+      trackName: run.trackName,
+      date: run.date,
+      timestamp: Date.now(),
+      totalDistanceMeters: run.totalDistanceMeters,
+      totalDurationSeconds: run.totalDurationSeconds,
+      avgPaceMinKm: run.avgPaceMinKm,
+      elevationGainMeters: run.elevationGainMeters,
+      compressedVector: compressed
     };
 
     return new Promise((resolve, reject) => {
@@ -157,7 +212,15 @@ export class GhostRepository {
       const tx = db.transaction('runs', 'readonly');
       const store = tx.objectStore('runs');
       const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
+      req.onsuccess = () => {
+        const results = req.result || [];
+        results.forEach((r: any) => {
+          if (r.compressedVector && !r.ghostVector) {
+            r.ghostVector = this.decompressVector(r.compressedVector);
+          }
+        });
+        resolve(results);
+      };
       req.onerror = () => reject(req.error);
     });
   }
