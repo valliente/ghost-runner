@@ -18,15 +18,24 @@ export class CloudGhostService {
   private static readonly STORAGE_KEY = 'ghost_cloud_sync_cache';
   private static readonly SUPABASE_ENDPOINT = 'https://mock-supabase.ghostrunner.app/rest/v1';
 
+  private static memoryCache: CloudGhostRecord[] | null = null;
+
   /**
    * Initializes or loads cached cloud ghost library.
    */
   private static getLocalCache(): CloudGhostRecord[] {
-    try {
-      const cached = localStorage.getItem(CloudGhostService.STORAGE_KEY);
-      if (cached) return JSON.parse(cached);
-    } catch (e) {
-      console.warn('Failed to parse local cloud ghost cache:', e);
+    if (this.memoryCache) return this.memoryCache;
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(CloudGhostService.STORAGE_KEY);
+        if (cached) {
+          this.memoryCache = JSON.parse(cached);
+          return this.memoryCache!;
+        }
+      } catch (e) {
+        // ignore
+      }
     }
 
     // Default seeded community ghosts
@@ -77,10 +86,13 @@ export class CloudGhostService {
   }
 
   private static saveLocalCache(records: CloudGhostRecord[]): void {
-    try {
-      localStorage.setItem(CloudGhostService.STORAGE_KEY, JSON.stringify(records));
-    } catch (e) {
-      console.warn('Failed to save cloud ghost cache to local storage:', e);
+    this.memoryCache = records;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(CloudGhostService.STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        // ignore
+      }
     }
   }
 

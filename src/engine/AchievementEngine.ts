@@ -39,21 +39,34 @@ export class AchievementEngine {
     { id: 'cloud_racer', title: 'Cloud Racer', description: 'Download and challenge a peer cloud ghost track.', icon: '🌐', xpReward: 200 }
   ];
 
+  private static memoryUnlocked: string[] | null = null;
+
   public static getUnlockedIds(): string[] {
-    try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      // fallback
+    if (this.memoryUnlocked) return this.memoryUnlocked;
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(this.STORAGE_KEY);
+        if (saved) {
+          this.memoryUnlocked = JSON.parse(saved);
+          return this.memoryUnlocked!;
+        }
+      } catch (e) {
+        // fallback
+      }
     }
-    return [];
+    this.memoryUnlocked = [];
+    return this.memoryUnlocked;
   }
 
   public static saveUnlockedIds(ids: string[]): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ids));
-    } catch (e) {
-      console.warn('Failed to save unlocked achievements:', e);
+    this.memoryUnlocked = ids;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ids));
+      } catch (e) {
+        // ignore
+      }
     }
   }
 

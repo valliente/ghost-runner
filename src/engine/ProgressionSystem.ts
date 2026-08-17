@@ -27,15 +27,24 @@ export interface RunReward {
 export class ProgressionSystem {
   private static readonly STORAGE_KEY = 'ghost_runner_progression_profile';
 
+  private static memoryProfile: RunnerProfile | null = null;
+
   public static getProfile(): RunnerProfile {
-    try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed to load runner progression profile:', e);
+    if (this.memoryProfile) return this.memoryProfile;
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(this.STORAGE_KEY);
+        if (saved) {
+          this.memoryProfile = JSON.parse(saved);
+          return this.memoryProfile!;
+        }
+      } catch (e) {
+        // ignore
+      }
     }
 
-    return {
+    this.memoryProfile = {
       level: 1,
       currentXp: 0,
       totalXp: 0,
@@ -50,13 +59,17 @@ export class ProgressionSystem {
         overdrive: 1
       }
     };
+    return this.memoryProfile;
   }
 
   public static saveProfile(profile: RunnerProfile): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(profile));
-    } catch (e) {
-      console.warn('Failed to save runner progression profile:', e);
+    this.memoryProfile = profile;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(profile));
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
