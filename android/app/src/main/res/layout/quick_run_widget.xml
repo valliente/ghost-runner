@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#0d0221">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GHOST RUNNER // READY"
+        android:textColor="#00f3ff"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/widget_weekly_dist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WEEKLY: 18.5 KM"
+        android:textColor="#ffffff"
+        android:textSize="14sp"
+        android:fontFamily="monospace"
+        android:layout_marginTop="4dp" />
+
+    <Button
+        android:id="@+id/btn_widget_quick_run"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚡ START QUICK RUN"
+        android:textColor="#ffffff"
+        android:backgroundTint="#ff007f"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
